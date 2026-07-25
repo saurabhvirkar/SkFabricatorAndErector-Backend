@@ -1,0 +1,33 @@
+name: CI — Build & Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build & Test (.NET 8)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore SkFabricatorAndErector.slnx
+
+      - name: Build (Release)
+        run: dotnet build SkFabricatorAndErector.slnx --no-restore -c Release
+
+      - name: Run Unit Tests
+        run: dotnet test tests/SkFabricatorAndErector.UnitTests/SkFabricatorAndErector.UnitTests.csproj --no-build -c Release --logger "console;verbosity=minimal"
+
+      - name: Run Integration Tests
+        run: dotnet test tests/SkFabricatorAndErector.IntegrationTests/SkFabricatorAndErector.IntegrationTests.csproj --no-build -c Release --logger "console;verbosity=minimal"

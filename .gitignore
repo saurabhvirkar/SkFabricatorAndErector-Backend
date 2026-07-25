@@ -1,0 +1,23 @@
+## Ignore Visual Studio / .NET build outputs and IDE temporary files
+bin/
+obj/
+out/
+.vs/
+.idea/
+.vscode/
+*.user
+*.userossc
+*.sln.docstates
+*.suo
+
+## User Secrets & Local AppSettings
+appsettings.Local.json
+appsettings.Secrets.json
+*.db
+*.sqlite
+
+## OS Generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store

@@ -1,0 +1,37 @@
+# ─── Stage 1: Build ───────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy solution and project files first (layer cache for restore)
+COPY SkFabricatorAndErector.slnx ./
+COPY src/SkFabricatorAndErector.Domain/SkFabricatorAndErector.Domain.csproj             src/SkFabricatorAndErector.Domain/
+COPY src/SkFabricatorAndErector.Application/SkFabricatorAndErector.Application.csproj   src/SkFabricatorAndErector.Application/
+COPY src/SkFabricatorAndErector.Infrastructure/SkFabricatorAndErector.Infrastructure.csproj src/SkFabricatorAndErector.Infrastructure/
+COPY src/SkFabricatorAndErector.Api/SkFabricatorAndErector.Api.csproj                   src/SkFabricatorAndErector.Api/
+
+RUN dotnet restore src/SkFabricatorAndErector.Api/SkFabricatorAndErector.Api.csproj
+
+# Copy all source and publish
+COPY src/ src/
+RUN dotnet publish src/SkFabricatorAndErector.Api/SkFabricatorAndErector.Api.csproj \
+    -c Release -o /app/publish /p:UseAppHost=false
+
+# ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+
+# Security: run as non-root user
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser  --system --uid 1001 --ingroup appgroup appuser
+
+COPY --from=build --chown=appuser:appgroup /app/publish .
+
+USER appuser
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["dotnet", "SkFabricatorAndErector.Api.dll"]

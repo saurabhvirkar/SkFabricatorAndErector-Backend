@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+**/bin/
+**/obj/
+
+# Test projects (not needed in production image)
+tests/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE/editor files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Docker files (not needed inside container)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD
+.github/
+
+# Environment files with secrets
+*.env
+.env*
+appsettings.Development.json
+
+# Temp/log files
+*.log
+*.tmp

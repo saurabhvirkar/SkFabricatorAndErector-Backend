@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SkFabricatorAndErector.Api/SkFabricatorAndErector.Api.csproj" />
+    <Project Path="src/SkFabricatorAndErector.Application/SkFabricatorAndErector.Application.csproj" />
+    <Project Path="src/SkFabricatorAndErector.Domain/SkFabricatorAndErector.Domain.csproj" />
+    <Project Path="src/SkFabricatorAndErector.Infrastructure/SkFabricatorAndErector.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SkFabricatorAndErector.IntegrationTests/SkFabricatorAndErector.IntegrationTests.csproj" />
+    <Project Path="tests/SkFabricatorAndErector.UnitTests/SkFabricatorAndErector.UnitTests.csproj" />
+  </Folder>
+</Solution>

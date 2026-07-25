@@ -1,0 +1,58 @@
+services:
+  - type: web
+    name: sk-fabricator-api
+    env: docker
+    dockerfilePath: ./Dockerfile.api
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      # Runtime environment
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+
+      # Database — PostgreSQL (set in Render Dashboard)
+      - key: DatabaseProvider
+        value: Postgres
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+
+      # JWT Authentication (set in Render Dashboard)
+      - key: Jwt__Issuer
+        sync: false
+      - key: Jwt__Audience
+        sync: false
+      - key: Jwt__Key
+        sync: false
+      - key: Jwt__ExpireDays
+        value: "1"
+      - key: Jwt__RefreshTokenExpireDays
+        value: "7"
+
+      # Cloudinary Media Storage (set in Render Dashboard)
+      - key: CloudinarySettings__CloudName
+        sync: false
+      - key: CloudinarySettings__ApiKey
+        sync: false
+      - key: CloudinarySettings__ApiSecret
+        sync: false
+
+      # SMTP Email (set in Render Dashboard)
+      - key: SmtpSettings__Host
+        sync: false
+      - key: SmtpSettings__Port
+        value: "587"
+      - key: SmtpSettings__Username
+        sync: false
+      - key: SmtpSettings__Password
+        sync: false
+      - key: SmtpSettings__FromName
+        value: "SK Fabricator & Erector"
+      - key: SmtpSettings__ToEmail
+        sync: false
+
+      # CORS — allowed origins for Angular frontend
+      - key: AllowedOrigins__0
+        value: "https://skfabricatorui.onrender.com"

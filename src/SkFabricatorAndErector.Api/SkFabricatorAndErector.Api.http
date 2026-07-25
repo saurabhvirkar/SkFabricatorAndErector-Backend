@@ -1,0 +1,6 @@
+@SkFabricatorAndErector.Api_HostAddress = http://localhost:5229
+
+GET {{SkFabricatorAndErector.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

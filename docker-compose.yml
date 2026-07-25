@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: skfabricator-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: skfabricatordb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: skfabricator-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - DatabaseProvider=Postgres
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=skfabricatordb;Username=postgres;Password=postgrespassword
+      # JWT — use a strong secret in production
+      - Jwt__Issuer=http://localhost:8080
+      - Jwt__Audience=skfabricator-client
+      - Jwt__Key=LocalDevelopmentSecretKeyAtLeast32CharsLong!
+      - Jwt__ExpireDays=1
+      - Jwt__RefreshTokenExpireDays=7
+      # Cloudinary — replace with real values for local media testing
+      - CloudinarySettings__CloudName=REPLACE_WITH_CLOUD_NAME
+      - CloudinarySettings__ApiKey=REPLACE_WITH_API_KEY
+      - CloudinarySettings__ApiSecret=REPLACE_WITH_API_SECRET
+      # SMTP — replace with real values for email testing
+      - SmtpSettings__Host=smtp.gmail.com
+      - SmtpSettings__Port=587
+      - SmtpSettings__Username=REPLACE_WITH_EMAIL
+      - SmtpSettings__Password=REPLACE_WITH_APP_PASSWORD
+      - SmtpSettings__FromName=SK Fabricator & Erector
+      - SmtpSettings__ToEmail=REPLACE_WITH_RECIPIENT_EMAIL
+      # CORS
+      - AllowedOrigins__0=http://localhost:4200
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
