@@ -13,4 +13,6 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<TeamMember> TeamMembers { get; set; }
     public DbSet<ClientDetails> ClientDetails { get; set; }
     public DbSet<HomeSlider> HomeSliders { get; set; }
+    public DbSet<ApiClient> ApiClients { get; set; }
+    public DbSet<OtpCode> OtpCodes { get; set; }
 }

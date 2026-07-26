@@ -1,20 +1,24 @@
+using System.Net;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SkFabricatorAndErector.Api.Common;
 using SkFabricatorAndErector.Api.Extensions;
 using SkFabricatorAndErector.Application.Contracts.Requests.Auth;
 using SkFabricatorAndErector.Application.Interfaces.Services;
-using System.Net;
+using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
 
 [ApiController]
 [Route("api/account")]
 [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
-public class AccountController(IAuthenticationService authenticationService) : ControllerBase
+public class AccountController(IAuthenticationService authenticationService, UserManager<ApplicationUser> userManager) : ControllerBase
 {
     private readonly IAuthenticationService _authenticationService = authenticationService;
+    private readonly UserManager<ApplicationUser> _userManager = userManager;
 
     [HttpPost("login")]
     [AllowAnonymous]
@@ -75,6 +79,37 @@ public class AccountController(IAuthenticationService authenticationService) : C
 
         SetRefreshTokenCookie(response.RefreshToken);
         return Ok(new ApiResponse(HttpStatusCode.OK, "Token refreshed.", response));
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePasswordAsync([FromBody] ChangePasswordRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _authenticationService.ChangePasswordAsync(userId, request);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new ApiResponse(HttpStatusCode.BadRequest, "Password change failed.", result.Errors));
+        }
+
+        try
+        {
+            if (ControllerContext?.HttpContext?.Response?.Cookies != null)
+            {
+                Response.Cookies.Delete("refreshToken");
+            }
+        }
+        catch
+        {
+            // Ignore in uninitialized test context
+        }
+
+        return Ok(new ApiResponse(HttpStatusCode.OK, "Password changed successfully.", null));
     }
 
     [HttpPost("logout")]

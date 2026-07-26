@@ -6,14 +6,19 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Constants;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Infrastructure.Authentication;
 
-public class JwtTokenGenerator(IOptions<JwtSettings> jwtOptions, UserManager<ApplicationUser> userManager) : IJwtTokenGenerator
+public class JwtTokenGenerator(
+    IOptions<JwtSettings> jwtOptions,
+    UserManager<ApplicationUser> userManager,
+    RoleManager<IdentityRole> roleManager) : IJwtTokenGenerator
 {
     private readonly JwtSettings _jwtSettings = jwtOptions.Value;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly RoleManager<IdentityRole> _roleManager = roleManager;
 
     public async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
     {
@@ -29,6 +34,19 @@ public class JwtTokenGenerator(IOptions<JwtSettings> jwtOptions, UserManager<App
         foreach (var userRole in userRoles)
         {
             authClaims.Add(new Claim(ClaimTypes.Role, userRole));
+
+            var identityRole = await _roleManager.FindByNameAsync(userRole);
+            if (identityRole != null)
+            {
+                var roleClaims = await _roleManager.GetClaimsAsync(identityRole);
+                foreach (var claim in roleClaims)
+                {
+                    if (claim.Type == Permissions.ClaimType || claim.Type == "permission")
+                    {
+                        authClaims.Add(claim);
+                    }
+                }
+            }
         }
 
         var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));

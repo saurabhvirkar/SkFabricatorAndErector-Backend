@@ -29,7 +29,7 @@ public class ClientDetailsControllerTests
         _serviceMock.Setup(s => s.GetAllClientDetailsAsync()).ReturnsAsync(clients);
 
         // Act
-        var result = await _controller.GetClientDetails();
+        var result = await _controller.GetClients();
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -44,7 +44,7 @@ public class ClientDetailsControllerTests
         _serviceMock.Setup(s => s.GetClientDetailsByIdAsync(999)).ReturnsAsync((ClientDetails?)null);
 
         // Act
-        var result = await _controller.GetClientDetailsById(999);
+        var result = await _controller.GetClientById(999);
 
         // Assert
         Assert.IsType<NotFoundResult>(result);

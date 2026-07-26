@@ -9,10 +9,14 @@ using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Application.Features.Authentication;
 
-public class AuthenticationService(UserManager<ApplicationUser> userManager, IJwtTokenGenerator tokenGenerator) : IAuthenticationService
+public class AuthenticationService(
+    UserManager<ApplicationUser> userManager,
+    IJwtTokenGenerator tokenGenerator,
+    IOtpService otpService) : IAuthenticationService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IJwtTokenGenerator _tokenGenerator = tokenGenerator;
+    private readonly IOtpService _otpService = otpService;
 
     public async Task<AuthenticationResponse?> LoginAsync(LoginRequest request)
     {
@@ -42,7 +46,8 @@ public class AuthenticationService(UserManager<ApplicationUser> userManager, IJw
             Token = token,
             RefreshToken = rawRefreshToken,
             Email = user.Email,
-            Role = userRole
+            Role = userRole,
+            PasswordChangeRequired = user.PasswordChangeRequired
         };
     }
 
@@ -73,10 +78,8 @@ public class AuthenticationService(UserManager<ApplicationUser> userManager, IJw
 
         var incomingHash = HashRefreshToken(request.RefreshToken);
 
-        // Reuse detection / invalid token check
         if (user.RefreshToken != incomingHash || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
         {
-            // If an invalid or previously used refresh token is presented, revoke the user's tokens family (Reuse Detection)
             if (user.RefreshToken != null && user.RefreshToken != incomingHash)
             {
                 user.RefreshToken = null;
@@ -86,7 +89,6 @@ public class AuthenticationService(UserManager<ApplicationUser> userManager, IJw
             return null;
         }
 
-        // Token rotation: Issue new token pair
         var newJwtToken = await _tokenGenerator.GenerateJwtTokenAsync(user);
         var newRawRefreshToken = _tokenGenerator.GenerateRefreshToken();
 
@@ -102,8 +104,38 @@ public class AuthenticationService(UserManager<ApplicationUser> userManager, IJw
             Token = newJwtToken,
             RefreshToken = newRawRefreshToken,
             Email = user.Email,
-            Role = userRole
+            Role = userRole,
+            PasswordChangeRequired = user.PasswordChangeRequired
         };
+    }
+
+    public async Task<ChangePasswordResult> ChangePasswordAsync(string userId, ChangePasswordRequest request)
+    {
+        if (string.IsNullOrEmpty(userId)) return ChangePasswordResult.Failed("User ID is required.");
+        if (request.NewPassword != request.ConfirmNewPassword) return ChangePasswordResult.Failed("New password and confirmation password do not match.");
+        if (request.NewPassword == request.CurrentPassword) return ChangePasswordResult.Failed("New password cannot be the same as the current password.");
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return ChangePasswordResult.Failed("User not found.");
+
+        if (!string.IsNullOrWhiteSpace(request.OtpCode))
+        {
+            var otpValid = await _otpService.VerifyAsync(userId, "ChangePasswordStepUp", request.OtpCode);
+            if (!otpValid) return ChangePasswordResult.Failed("Invalid or expired OTP code.");
+        }
+
+        var identityResult = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!identityResult.Succeeded)
+        {
+            return ChangePasswordResult.Failed(identityResult.Errors.Select(e => e.Description));
+        }
+
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = DateTime.MinValue;
+        user.PasswordChangeRequired = false;
+        await _userManager.UpdateAsync(user);
+
+        return ChangePasswordResult.Success();
     }
 
     private static string HashRefreshToken(string token)

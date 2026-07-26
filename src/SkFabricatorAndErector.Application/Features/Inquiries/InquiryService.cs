@@ -13,7 +13,13 @@ public class InquiryService(IInquiryRepository inquiryRepository, IEmailService 
 
     public async Task<Inquiry> CreateInquiryAsync(Inquiry inquiry)
     {
+        if (inquiry.SubmittedAt == default)
+        {
+            inquiry.SubmittedAt = DateTime.UtcNow;
+        }
+
         await _inquiryRepository.AddAsync(inquiry);
+        await _inquiryRepository.SaveChangesAsync();
 
         // Try to send the email, but don't let it block the user response.
         // If it fails, log the error for administrative review.
@@ -25,6 +31,7 @@ public class InquiryService(IInquiryRepository inquiryRepository, IEmailService 
         {
             _logger.LogError(ex, "Failed to send inquiry notification email for inquiry ID {InquiryId}.", inquiry.Id);
         }
+
         return inquiry;
     }
 
@@ -47,6 +54,7 @@ public class InquiryService(IInquiryRepository inquiryRepository, IEmailService 
         }
 
         await _inquiryRepository.DeleteAsync(inquiryToDelete);
+        await _inquiryRepository.SaveChangesAsync();
         return true; // Deletion successful
     }
 }

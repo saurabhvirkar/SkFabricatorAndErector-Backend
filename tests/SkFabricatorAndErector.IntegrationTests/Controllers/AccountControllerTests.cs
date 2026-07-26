@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SkFabricatorAndErector.Api.Common;
@@ -5,6 +6,7 @@ using SkFabricatorAndErector.Api.Controllers;
 using SkFabricatorAndErector.Application.Contracts.Requests.Auth;
 using SkFabricatorAndErector.Application.Contracts.Responses.Auth;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Entities;
 using Xunit;
 
 namespace SkFabricatorAndErector.IntegrationTests.Controllers;
@@ -12,11 +14,16 @@ namespace SkFabricatorAndErector.IntegrationTests.Controllers;
 public class AccountControllerTests
 {
     private readonly Mock<IAuthenticationService> _authServiceMock = new();
+    private readonly Mock<UserManager<ApplicationUser>> _userManagerMock;
     private readonly AccountController _controller;
 
     public AccountControllerTests()
     {
-        _controller = new AccountController(_authServiceMock.Object);
+        var storeMock = new Mock<IUserStore<ApplicationUser>>();
+        _userManagerMock = new Mock<UserManager<ApplicationUser>>(
+            storeMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        _controller = new AccountController(_authServiceMock.Object, _userManagerMock.Object);
     }
 
     [Fact]

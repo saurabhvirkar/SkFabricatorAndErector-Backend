@@ -10,19 +10,20 @@ namespace SkFabricatorAndErector.Api.Controllers;
 
 [ApiController]
 [Route("api/clientdetails")]
+[Route("api/clients")]
 public class ClientDetailsController(IClientDetailsService clientDetailsService) : ControllerBase
 {
     private readonly IClientDetailsService _clientDetailsService = clientDetailsService;
 
     [HttpGet]
-    public async Task<IActionResult> GetClientDetails()
+    public async Task<IActionResult> GetClients()
     {
         var clients = await _clientDetailsService.GetAllClientDetailsAsync();
         return Ok(clients.Select(MapToResponse));
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetClientDetailsById(int id)
+    public async Task<IActionResult> GetClientById(int id)
     {
         var client = await _clientDetailsService.GetClientDetailsByIdAsync(id);
         if (client == null) return NotFound();
@@ -30,17 +31,17 @@ public class ClientDetailsController(IClientDetailsService clientDetailsService)
     }
 
     [HttpPost]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
-    public async Task<IActionResult> CreateClientDetails([FromForm] CreateClientDetailsRequest request)
+    [Authorize(Policy = Permissions.Clients.Create)]
+    public async Task<IActionResult> CreateClient([FromForm] CreateClientDetailsRequest request)
     {
         var client = await _clientDetailsService.CreateClientDetailsAsync(request);
         var response = MapToResponse(client);
-        return CreatedAtAction(nameof(GetClientDetailsById), new { id = response.Id }, response);
+        return CreatedAtAction(nameof(GetClientById), new { id = response.Id }, response);
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
-    public async Task<IActionResult> UpdateClientDetails(int id, [FromForm] UpdateClientDetailsRequest request)
+    [Authorize(Policy = Permissions.Clients.Update)]
+    public async Task<IActionResult> UpdateClient(int id, [FromForm] UpdateClientDetailsRequest request)
     {
         var updatedClient = await _clientDetailsService.UpdateClientDetailsAsync(id, request);
         if (updatedClient == null) return NotFound();
@@ -48,8 +49,8 @@ public class ClientDetailsController(IClientDetailsService clientDetailsService)
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
-    public async Task<IActionResult> DeleteClientDetails(int id)
+    [Authorize(Policy = Permissions.Clients.Delete)]
+    public async Task<IActionResult> DeleteClient(int id)
     {
         var success = await _clientDetailsService.DeleteClientDetailsAsync(id);
         if (!success) return NotFound();

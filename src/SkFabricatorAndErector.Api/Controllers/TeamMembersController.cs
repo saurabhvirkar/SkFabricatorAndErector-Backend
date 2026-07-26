@@ -10,6 +10,7 @@ namespace SkFabricatorAndErector.Api.Controllers;
 
 [ApiController]
 [Route("api/teammembers")]
+[Route("api/team")]
 public class TeamMembersController(ITeamMemberService teamMemberService) : ControllerBase
 {
     private readonly ITeamMemberService _teamMemberService = teamMemberService;
@@ -30,7 +31,7 @@ public class TeamMembersController(ITeamMemberService teamMemberService) : Contr
     }
 
     [HttpPost]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Team.Create)]
     public async Task<IActionResult> CreateTeamMember([FromForm] CreateTeamMemberRequest request)
     {
         var member = await _teamMemberService.CreateTeamMemberAsync(request);
@@ -39,7 +40,7 @@ public class TeamMembersController(ITeamMemberService teamMemberService) : Contr
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Team.Update)]
     public async Task<IActionResult> UpdateTeamMember(int id, [FromForm] UpdateTeamMemberRequest request)
     {
         var updatedMember = await _teamMemberService.UpdateTeamMemberAsync(id, request);
@@ -48,7 +49,7 @@ public class TeamMembersController(ITeamMemberService teamMemberService) : Contr
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Team.Delete)]
     public async Task<IActionResult> DeleteTeamMember(int id)
     {
         var success = await _teamMemberService.DeleteTeamMemberAsync(id);

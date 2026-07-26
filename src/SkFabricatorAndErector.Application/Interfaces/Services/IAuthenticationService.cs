@@ -7,4 +7,5 @@ public interface IAuthenticationService
 {
     Task<AuthenticationResponse?> LoginAsync(LoginRequest request);
     Task<AuthenticationResponse?> RefreshTokenAsync(RefreshTokenRequest request);
+    Task<ChangePasswordResult> ChangePasswordAsync(string userId, ChangePasswordRequest request);
 }

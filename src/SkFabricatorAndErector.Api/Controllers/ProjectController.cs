@@ -10,6 +10,7 @@ namespace SkFabricatorAndErector.Api.Controllers;
 
 [ApiController]
 [Route("api/project")]
+[Route("api/projects")]
 public class ProjectController(IProjectService projectService) : ControllerBase
 {
     private readonly IProjectService _projectService = projectService;
@@ -37,7 +38,7 @@ public class ProjectController(IProjectService projectService) : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Projects.Create)]
     public async Task<IActionResult> CreateProject([FromForm] CreateProjectRequest request)
     {
         var project = await _projectService.CreateProjectAsync(request);
@@ -46,7 +47,7 @@ public class ProjectController(IProjectService projectService) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Projects.Update)]
     public async Task<IActionResult> UpdateProject(int id, [FromForm] UpdateProjectRequest request)
     {
         var updatedProject = await _projectService.UpdateProjectAsync(id, request);
@@ -55,7 +56,7 @@ public class ProjectController(IProjectService projectService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Projects.Delete)]
     public async Task<IActionResult> DeleteProject(int id)
     {
         var success = await _projectService.DeleteProjectAsync(id);

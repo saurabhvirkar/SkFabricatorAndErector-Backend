@@ -67,3 +67,17 @@ public class UpdateClientDetailsRequest
     public string? ClientUrl { get; set; }
     public IFormFile? ImageFile { get; set; }
 }
+
+public class CreateHomeSliderRequest
+{
+    public string Title { get; set; } = string.Empty;
+    public string Subtitle { get; set; } = string.Empty;
+    public IFormFile File { get; set; } = null!;
+}
+
+public class CreatePhotoRequest
+{
+    public IFormFile File { get; set; } = null!;
+    public string? Category { get; set; }
+    public bool IsAboutSlider { get; set; } = false;
+}

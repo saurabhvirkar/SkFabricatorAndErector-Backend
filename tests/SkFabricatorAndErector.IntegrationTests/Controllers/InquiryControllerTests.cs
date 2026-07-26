@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SkFabricatorAndErector.Api.Controllers;
-using SkFabricatorAndErector.Application.Contracts.Requests.Inquiries;
-using SkFabricatorAndErector.Application.Contracts.Responses.Inquiries;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Domain.Entities;
 using Xunit;
@@ -20,10 +18,10 @@ public class InquiryControllerTests
     }
 
     [Fact]
-    public async Task SubmitInquiryAsync_ShouldReturnCreatedAtRoute_WithInquiryResponse()
+    public async Task CreateInquiry_ShouldReturnCreatedAtAction_WithInquiry()
     {
         // Arrange
-        var request = new CreateInquiryRequest
+        var inquiry = new Inquiry
         {
             Name = "Alice Smith",
             Email = "alice@example.com",
@@ -34,24 +32,24 @@ public class InquiryControllerTests
                     .ReturnsAsync((Inquiry i) => { i.Id = 10; return i; });
 
         // Act
-        var actionResult = await _controller.SubmitInquiryAsync(request);
+        var actionResult = await _controller.CreateInquiry(inquiry);
 
         // Assert
-        var createdResult = Assert.IsType<CreatedAtRouteResult>(actionResult);
-        Assert.Equal("GetInquiryByIdAsync", createdResult.RouteName);
-        var response = Assert.IsType<InquiryResponse>(createdResult.Value);
+        var createdResult = Assert.IsType<CreatedAtActionResult>(actionResult);
+        Assert.Equal(nameof(InquiryController.GetInquiryById), createdResult.ActionName);
+        var response = Assert.IsType<Inquiry>(createdResult.Value);
         Assert.Equal(10, response.Id);
         Assert.Equal("Alice Smith", response.Name);
     }
 
     [Fact]
-    public async Task GetInquiryByIdAsync_ShouldReturnNotFound_WhenInquiryDoesNotExist()
+    public async Task GetInquiryById_ShouldReturnNotFound_WhenInquiryDoesNotExist()
     {
         // Arrange
         _serviceMock.Setup(s => s.GetInquiryByIdAsync(999)).ReturnsAsync((Inquiry?)null);
 
         // Act
-        var result = await _controller.GetInquiryByIdAsync(999);
+        var result = await _controller.GetInquiryById(999);
 
         // Assert
         Assert.IsType<NotFoundResult>(result);

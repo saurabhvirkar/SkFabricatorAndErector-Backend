@@ -10,48 +10,49 @@ namespace SkFabricatorAndErector.Api.Controllers;
 
 [ApiController]
 [Route("api/ourservices")]
-public class OurServicesController(IOurServiceService ourServiceService) : ControllerBase
+[Route("api/services")]
+public class OurServicesController(IOurServiceService serviceService) : ControllerBase
 {
-    private readonly IOurServiceService _ourServiceService = ourServiceService;
+    private readonly IOurServiceService _serviceService = serviceService;
 
     [HttpGet]
     public async Task<IActionResult> GetServices()
     {
-        var services = await _ourServiceService.GetAllServicesAsync();
+        var services = await _serviceService.GetAllServicesAsync();
         return Ok(services.Select(MapToResponse));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetServiceById(int id)
     {
-        var service = await _ourServiceService.GetServiceByIdAsync(id);
+        var service = await _serviceService.GetServiceByIdAsync(id);
         if (service == null) return NotFound();
         return Ok(MapToResponse(service));
     }
 
     [HttpPost]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Services.Create)]
     public async Task<IActionResult> CreateService([FromForm] CreateOurServiceRequest request)
     {
-        var service = await _ourServiceService.CreateServiceAsync(request);
+        var service = await _serviceService.CreateServiceAsync(request);
         var response = MapToResponse(service);
         return CreatedAtAction(nameof(GetServiceById), new { id = response.Id }, response);
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Services.Update)]
     public async Task<IActionResult> UpdateService(int id, [FromForm] UpdateOurServiceRequest request)
     {
-        var updatedService = await _ourServiceService.UpdateServiceAsync(id, request);
+        var updatedService = await _serviceService.UpdateServiceAsync(id, request);
         if (updatedService == null) return NotFound();
         return Ok(MapToResponse(updatedService));
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = UserRoles.AdminOrManager)]
+    [Authorize(Policy = Permissions.Services.Delete)]
     public async Task<IActionResult> DeleteService(int id)
     {
-        var success = await _ourServiceService.DeleteServiceAsync(id);
+        var success = await _serviceService.DeleteServiceAsync(id);
         if (!success) return NotFound();
         return NoContent();
     }

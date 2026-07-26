@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,11 +8,13 @@ using Microsoft.IdentityModel.Tokens;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Infrastructure.Authentication;
+using SkFabricatorAndErector.Infrastructure.Authorization;
 using SkFabricatorAndErector.Infrastructure.ExternalServices.Email;
 using SkFabricatorAndErector.Infrastructure.ExternalServices.Media;
 using SkFabricatorAndErector.Infrastructure.Logging;
 using SkFabricatorAndErector.Infrastructure.Persistence;
 using SkFabricatorAndErector.Infrastructure.Persistence.Repositories;
+using SkFabricatorAndErector.Infrastructure.Services;
 
 namespace SkFabricatorAndErector.Infrastructure;
 
@@ -44,10 +47,13 @@ public static class DependencyInjection
                 ValidIssuer = jwtSettings.Issuer,
                 ValidAudience = jwtSettings.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
-                // Prevent the default 5-minute clock skew — tokens must not be accepted after exact expiry
                 ClockSkew = TimeSpan.Zero
             };
         });
+
+        // Dynamic Permission Policy Provider & Handler
+        services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
         services.AddHttpContextAccessor();
         services.AddScoped<ISecurityAuditLogger, SecurityAuditLogger>();
@@ -62,6 +68,7 @@ public static class DependencyInjection
 
         services.AddScoped<IPhotoService, CloudinaryPhotoService>();
         services.AddTransient<IEmailService, MailKitEmailService>();
+        services.AddScoped<IOtpService, OtpService>();
 
         return services;
     }
