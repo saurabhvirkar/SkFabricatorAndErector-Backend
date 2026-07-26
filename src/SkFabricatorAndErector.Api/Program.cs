@@ -22,7 +22,6 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<ValidationFilter>();
 });
 
-builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerDocumentation();
 builder.Services.AddCorsPolicy(builder.Configuration);
 
@@ -73,11 +72,7 @@ if (!app.Environment.IsDevelopment())
 app.UseCorsPolicy();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
-// Gate Swagger UI in development environment only for Phase 9
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwaggerDocumentation();
-}
+// (OpenAPI/Scalar endpoints are mapped below alongside MapControllers)
 
 // Rate limiting must be after routing
 app.UseRateLimiter();
@@ -90,5 +85,13 @@ app.MapControllers();
 // Minimal health probe — used by Docker HEALTHCHECK and Render platform
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }))
    .AllowAnonymous();
+
+// Scalar API Explorer — development only
+// OpenAPI JSON : /openapi/v1.json
+// Scalar UI    : /scalar/v1
+if (app.Environment.IsDevelopment())
+{
+    app.MapSwaggerDocumentation();
+}
 
 app.Run();

@@ -1,3 +1,12 @@
 <Project>
-  <!-- Global build targets or post-build actions can be defined here -->
+  <!-- ============================================================
+       Solution-wide build targets for SK Fabricator & Erector
+       Targeting: .NET 10 LTS
+       ============================================================ -->
+
+  <Target Name="PrintTargetFramework" AfterTargets="Build" Condition="'$(CI)' != 'true'">
+    <!-- Prints the resolved TFM after each project build in local dev (silent on CI). -->
+    <Message Text="[$(MSBuildProjectName)] Built for $(TargetFramework)" Importance="low" />
+  </Target>
+
 </Project>
