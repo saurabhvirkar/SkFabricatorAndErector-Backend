@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkFabricatorAndErector.Application.Contracts.Requests.Catalog;
 using SkFabricatorAndErector.Application.Contracts.Responses.Catalog;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Constants;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
@@ -29,7 +30,7 @@ public class ClientDetailsController(IClientDetailsService clientDetailsService)
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> CreateClientDetails([FromForm] CreateClientDetailsRequest request)
     {
         var client = await _clientDetailsService.CreateClientDetailsAsync(request);
@@ -38,7 +39,7 @@ public class ClientDetailsController(IClientDetailsService clientDetailsService)
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> UpdateClientDetails(int id, [FromForm] UpdateClientDetailsRequest request)
     {
         var updatedClient = await _clientDetailsService.UpdateClientDetailsAsync(id, request);
@@ -47,7 +48,7 @@ public class ClientDetailsController(IClientDetailsService clientDetailsService)
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> DeleteClientDetails(int id)
     {
         var success = await _clientDetailsService.DeleteClientDetailsAsync(id);

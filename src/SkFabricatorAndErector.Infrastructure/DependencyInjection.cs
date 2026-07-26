@@ -9,6 +9,7 @@ using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Infrastructure.Authentication;
 using SkFabricatorAndErector.Infrastructure.ExternalServices.Email;
 using SkFabricatorAndErector.Infrastructure.ExternalServices.Media;
+using SkFabricatorAndErector.Infrastructure.Logging;
 using SkFabricatorAndErector.Infrastructure.Persistence;
 using SkFabricatorAndErector.Infrastructure.Persistence.Repositories;
 
@@ -48,6 +49,8 @@ public static class DependencyInjection
             };
         });
 
+        services.AddHttpContextAccessor();
+        services.AddScoped<ISecurityAuditLogger, SecurityAuditLogger>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IInquiryRepository, InquiryRepository>();
         services.AddScoped<IPhotoRepository, PhotoRepository>();

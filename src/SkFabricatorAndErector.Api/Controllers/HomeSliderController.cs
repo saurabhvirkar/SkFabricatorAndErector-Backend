@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkFabricatorAndErector.Application.Contracts.Requests.Media;
 using SkFabricatorAndErector.Application.Contracts.Responses.Media;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Constants;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
@@ -21,7 +22,7 @@ public class HomeSliderController(IHomeSliderService homeSliderService) : Contro
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> AddHomeSlider([FromForm] AddHomeSliderRequest request)
     {
         if (request.File == null || request.File.Length == 0)
@@ -34,7 +35,7 @@ public class HomeSliderController(IHomeSliderService homeSliderService) : Contro
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> DeleteHomeSlider(int id)
     {
         var success = await _homeSliderService.DeleteSliderAsync(id);

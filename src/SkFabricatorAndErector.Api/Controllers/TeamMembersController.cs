@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkFabricatorAndErector.Application.Contracts.Requests.Catalog;
 using SkFabricatorAndErector.Application.Contracts.Responses.Catalog;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Constants;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
@@ -29,7 +30,7 @@ public class TeamMembersController(ITeamMemberService teamMemberService) : Contr
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> CreateTeamMember([FromForm] CreateTeamMemberRequest request)
     {
         var member = await _teamMemberService.CreateTeamMemberAsync(request);
@@ -38,7 +39,7 @@ public class TeamMembersController(ITeamMemberService teamMemberService) : Contr
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> UpdateTeamMember(int id, [FromForm] UpdateTeamMemberRequest request)
     {
         var updatedMember = await _teamMemberService.UpdateTeamMemberAsync(id, request);
@@ -47,7 +48,7 @@ public class TeamMembersController(ITeamMemberService teamMemberService) : Contr
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> DeleteTeamMember(int id)
     {
         var success = await _teamMemberService.DeleteTeamMemberAsync(id);

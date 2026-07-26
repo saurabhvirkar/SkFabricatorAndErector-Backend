@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkFabricatorAndErector.Application.Contracts.Requests.Inquiries;
 using SkFabricatorAndErector.Application.Contracts.Responses.Inquiries;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Constants;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
@@ -36,7 +37,7 @@ public class InquiryController(IInquiryService inquiryService) : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> GetInquiriesAsync()
     {
         var inquiries = await _inquiryService.GetAllInquiriesAsync();
@@ -45,7 +46,7 @@ public class InquiryController(IInquiryService inquiryService) : ControllerBase
     }
 
     [HttpGet("{id}", Name = "GetInquiryByIdAsync")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> GetInquiryByIdAsync(int id)
     {
         var inquiry = await _inquiryService.GetInquiryByIdAsync(id);
@@ -59,7 +60,7 @@ public class InquiryController(IInquiryService inquiryService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> DeleteInquiryAsync(int id)
     {
         var success = await _inquiryService.DeleteInquiryAsync(id);

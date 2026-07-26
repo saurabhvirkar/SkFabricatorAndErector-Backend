@@ -27,12 +27,22 @@ public class CloudinaryPhotoService : IPhotoService
     {
         var uploadResult = new ApplicationImageUploadResult();
 
+        var validationError = FileUploadValidator.ValidateImageFile(file);
+        if (validationError != null)
+        {
+            uploadResult.Error = validationError;
+            return uploadResult;
+        }
+
         if (file.Length > 0)
         {
+            var ext = Path.GetExtension(file.FileName);
+            var safeServerFileName = $"{Guid.NewGuid():N}{ext}";
+
             using var stream = file.OpenReadStream();
             var uploadParams = new ImageUploadParams
             {
-                File = new FileDescription(file.FileName, stream),
+                File = new FileDescription(safeServerFileName, stream),
                 Transformation = new Transformation().Height(500).Width(500).Crop("fill").Gravity("face"),
                 Folder = "sk-fabricator"
             };

@@ -3,10 +3,14 @@ using SkFabricatorAndErector.Api.Extensions;
 using SkFabricatorAndErector.Api.Filters;
 using SkFabricatorAndErector.Api.Middleware;
 using SkFabricatorAndErector.Application;
+using SkFabricatorAndErector.Application.Extensions;
 using SkFabricatorAndErector.Infrastructure;
 using SkFabricatorAndErector.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Startup Security Validation ---
+builder.Configuration.ValidateStartupSecurity(builder.Environment);
 
 // --- Application Core & Infrastructure Registration ---
 builder.Services.AddApplication();
@@ -68,7 +72,12 @@ if (!app.Environment.IsDevelopment())
 
 app.UseCorsPolicy();
 app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseSwaggerDocumentation();
+
+// Gate Swagger UI in development environment only for Phase 9
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerDocumentation();
+}
 
 // Rate limiting must be after routing
 app.UseRateLimiter();
@@ -83,4 +92,3 @@ app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = Dat
    .AllowAnonymous();
 
 app.Run();
-

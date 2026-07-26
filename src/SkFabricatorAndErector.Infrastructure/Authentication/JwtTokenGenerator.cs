@@ -33,10 +33,12 @@ public class JwtTokenGenerator(IOptions<JwtSettings> jwtOptions, UserManager<App
 
         var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
 
+        var expiryMinutes = _jwtSettings.ExpireMinutes > 0 ? _jwtSettings.ExpireMinutes : 30;
+
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
-            expires: DateTime.UtcNow.AddDays(_jwtSettings.ExpireDays),
+            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
             claims: authClaims,
             signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
         );

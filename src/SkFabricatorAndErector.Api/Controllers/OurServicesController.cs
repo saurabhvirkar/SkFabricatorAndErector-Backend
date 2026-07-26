@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkFabricatorAndErector.Application.Contracts.Requests.Catalog;
 using SkFabricatorAndErector.Application.Contracts.Responses.Catalog;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Constants;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
@@ -29,7 +30,7 @@ public class OurServicesController(IOurServiceService ourServiceService) : Contr
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> CreateService([FromForm] CreateOurServiceRequest request)
     {
         var service = await _ourServiceService.CreateServiceAsync(request);
@@ -38,7 +39,7 @@ public class OurServicesController(IOurServiceService ourServiceService) : Contr
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> UpdateService(int id, [FromForm] UpdateOurServiceRequest request)
     {
         var updatedService = await _ourServiceService.UpdateServiceAsync(id, request);
@@ -47,7 +48,7 @@ public class OurServicesController(IOurServiceService ourServiceService) : Contr
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> DeleteService(int id)
     {
         var success = await _ourServiceService.DeleteServiceAsync(id);

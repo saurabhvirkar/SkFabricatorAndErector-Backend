@@ -4,6 +4,7 @@ using SkFabricatorAndErector.Application.Contracts.Requests.Media;
 using SkFabricatorAndErector.Application.Contracts.Responses.Media;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Constants;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
@@ -30,7 +31,7 @@ public class PhotoController(IPhotoRepository photoRepository, IPhotoService pho
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> AddPhoto([FromForm] AddPhotoRequest request)
     {
         var file = request.File;
@@ -64,7 +65,7 @@ public class PhotoController(IPhotoRepository photoRepository, IPhotoService pho
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> DeletePhoto(int id)
     {
         var photo = await _photoRepository.GetByIdAsync(id);
@@ -84,7 +85,7 @@ public class PhotoController(IPhotoRepository photoRepository, IPhotoService pho
     }
 
     [HttpDelete("about-slider/{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> DeleteAboutSliderPhoto(int id)
     {
         var photo = await _photoRepository.GetByIdAsync(id);

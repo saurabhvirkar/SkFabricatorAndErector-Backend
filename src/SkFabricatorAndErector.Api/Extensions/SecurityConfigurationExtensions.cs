@@ -1,0 +1,1 @@
+// Replaced by SkFabricatorAndErector.Application.Extensions.SecurityConfigurationExtensions

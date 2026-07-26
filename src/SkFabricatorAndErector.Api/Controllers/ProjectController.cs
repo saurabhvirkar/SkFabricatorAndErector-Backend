@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkFabricatorAndErector.Application.Contracts.Requests.Catalog;
 using SkFabricatorAndErector.Application.Contracts.Responses.Catalog;
 using SkFabricatorAndErector.Application.Interfaces.Services;
+using SkFabricatorAndErector.Domain.Constants;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
@@ -36,7 +37,7 @@ public class ProjectController(IProjectService projectService) : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> CreateProject([FromForm] CreateProjectRequest request)
     {
         var project = await _projectService.CreateProjectAsync(request);
@@ -45,7 +46,7 @@ public class ProjectController(IProjectService projectService) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> UpdateProject(int id, [FromForm] UpdateProjectRequest request)
     {
         var updatedProject = await _projectService.UpdateProjectAsync(id, request);
@@ -54,7 +55,7 @@ public class ProjectController(IProjectService projectService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = UserRoles.AdminOrManager)]
     public async Task<IActionResult> DeleteProject(int id)
     {
         var success = await _projectService.DeleteProjectAsync(id);
