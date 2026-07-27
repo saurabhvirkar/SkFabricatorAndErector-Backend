@@ -1,11 +1,11 @@
 # SK Fabricator & Erector — Backend API Service
 
-[![.NET 8.0](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
+[![.NET 10.0](https://img.shields.io/badge/.NET-10.0-blue.svg)](https://dotnet.microsoft.com/)
 [![Build](https://github.com/your-org/SkFabricatorAndErector-Backend/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/SkFabricatorAndErector-Backend/actions/workflows/ci.yml)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20Architecture-brightgreen.svg)](https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures#clean-architecture)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-An enterprise-grade ASP.NET Core 8 Web API built for **SK Fabricator & Erector**. Replaces the legacy monolithic API with Clean Architecture, explicit domain boundaries, FluentValidation, EF Core dual-provider persistence (SQLite / PostgreSQL), security hardening, and containerized deployment to Render.com.
+An enterprise-grade ASP.NET Core 10 Web API built for **SK Fabricator & Erector**. Replaces the legacy monolithic API with Clean Architecture, explicit domain boundaries, FluentValidation, EF Core dual-provider persistence (SQLite / PostgreSQL), security hardening, and containerized deployment to Render.com.
 
 ---
 
@@ -45,7 +45,7 @@ An enterprise-grade ASP.NET Core 8 Web API built for **SK Fabricator & Erector**
 ## 🚀 Getting Started
 
 ### Prerequisites
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) *(optional)*
 
 ### Local Development
