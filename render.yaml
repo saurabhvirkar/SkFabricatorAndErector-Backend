@@ -11,20 +11,17 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile.api
     healthCheckPath: /health
-    region: singapore
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-      - key: ASPNETCORE_URLS
-        value: http://+:8080
 
-      # Database Connection String (Configure in Render Dashboard or Environment)
+      # Database Connection String
       - key: DatabaseProvider
         value: PostgreSQL
       - key: ConnectionStrings__DefaultConnection
         sync: false
 
-      # JWT Authentication Settings
+      # JWT Authentication Configuration
       - key: Jwt__Issuer
         value: https://skfabricatorapi.onrender.com
       - key: Jwt__Audience
@@ -36,7 +33,7 @@ services:
       - key: Jwt__RefreshTokenExpireDays
         value: "7"
 
-      # Cloudinary Media Storage Settings
+      # Cloudinary Media Storage Configuration
       - key: CloudinarySettings__CloudName
         sync: false
       - key: CloudinarySettings__ApiKey
@@ -44,7 +41,7 @@ services:
       - key: CloudinarySettings__ApiSecret
         sync: false
 
-      # SMTP Email Settings
+      # SMTP Email Configuration (SmtpSettings)
       - key: SmtpSettings__Host
         value: smtp.gmail.com
       - key: SmtpSettings__Port
@@ -58,13 +55,27 @@ services:
       - key: SmtpSettings__ToEmail
         sync: false
 
-      # Seed User Initial Configuration
+      # Email Configuration Aliases (Email)
+      - key: Email__SmtpServer
+        value: smtp.gmail.com
+      - key: Email__SmtpPort
+        value: "587"
+      - key: Email__From
+        sync: false
+      - key: Email__To
+        sync: false
+      - key: Email__Username
+        sync: false
+      - key: Email__Password
+        sync: false
+
+      # Initial Seed Accounts Configuration
       - key: SeedUserPasswords__Admin
         sync: false
       - key: SeedUserPasswords__Manager
         sync: false
 
-      # Allowed CORS Origins
+      # CORS Allowed Origins
       - key: AllowedOrigins__0
         value: "https://skfabricatorui.onrender.com"
       - key: AllowedOrigins__1
@@ -78,4 +89,3 @@ services:
     plan: free
     env: docker
     dockerfilePath: ./Dockerfile.ui
-    region: singapore
