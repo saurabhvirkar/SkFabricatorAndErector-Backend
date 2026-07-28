@@ -19,71 +19,108 @@ public static class SeedData
         var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger(typeof(SeedData));
 
         // 1. Seed Roles & Role Claims (Permission Matrix)
-        var rolePermissions = GetRolePermissionMatrix();
-        foreach (var (roleName, permissions) in rolePermissions)
+        try
         {
-            var role = await roleManager.FindByNameAsync(roleName);
-            if (role == null)
+            var rolePermissions = GetRolePermissionMatrix();
+            foreach (var (roleName, permissions) in rolePermissions)
             {
-                role = new IdentityRole(roleName);
+                IdentityRole? role = null;
                 try
                 {
-                    await roleManager.CreateAsync(role);
+                    role = await roleManager.FindByNameAsync(roleName);
+                    if (role == null)
+                    {
+                        role = new IdentityRole(roleName);
+                        await roleManager.CreateAsync(role);
+                    }
                 }
                 catch (Exception rEx)
                 {
                     logger?.LogWarning("Notice: Unable to create role '{Role}': {Message}", roleName, rEx.Message);
                 }
-            }
 
-            var existingClaims = await roleManager.GetClaimsAsync(role);
-            var existingClaimValues = existingClaims.Where(c => c.Type == Permissions.ClaimType).Select(c => c.Value).ToHashSet();
-
-            foreach (var permission in permissions)
-            {
-                if (!existingClaimValues.Contains(permission))
+                if (role != null)
                 {
                     try
                     {
-                        await roleManager.AddClaimAsync(role, new Claim(Permissions.ClaimType, permission));
+                        var existingClaims = await roleManager.GetClaimsAsync(role);
+                        var existingClaimValues = existingClaims.Where(c => c.Type == Permissions.ClaimType).Select(c => c.Value).ToHashSet();
+
+                        foreach (var permission in permissions)
+                        {
+                            if (!existingClaimValues.Contains(permission))
+                            {
+                                try
+                                {
+                                    await roleManager.AddClaimAsync(role, new Claim(Permissions.ClaimType, permission));
+                                }
+                                catch (Exception claimEx)
+                                {
+                                    logger?.LogWarning("Notice: Unable to seed claim '{Permission}' for role '{Role}': {Message}", permission, roleName, claimEx.Message);
+                                }
+                            }
+                        }
                     }
-                    catch (Exception claimEx)
+                    catch (Exception claimsGetEx)
                     {
-                        logger?.LogWarning("Notice: Unable to seed claim '{Permission}' for role '{Role}': {Message}", permission, roleName, claimEx.Message);
+                        logger?.LogWarning("Notice: Unable to query claims for role '{Role}': {Message}", roleName, claimsGetEx.Message);
                     }
                 }
             }
         }
-
-        var passwordHasher = serviceProvider.GetRequiredService<IPasswordHasher<ApplicationUser>>();
+        catch (Exception rolesEx)
+        {
+            logger?.LogWarning(rolesEx, "Notice: Role seeding encountered an exception.");
+        }
 
         // 2. SuperAdmin Bootstrap Account
-        var superAdminEmail = "superadmin@skfabricator.com";
-        var superAdminPassword = configuration["BOOTSTRAP_ADMIN_PASSWORD"]
-                                 ?? configuration["SeedUserPasswords:SuperAdmin"];
-        if (string.IsNullOrWhiteSpace(superAdminPassword) || superAdminPassword.StartsWith("REPLACE_WITH_"))
+        try
         {
-            superAdminPassword = "SuperAdmin@123!";
+            var superAdminEmail = "superadmin@skfabricator.com";
+            var superAdminPassword = configuration["BOOTSTRAP_ADMIN_PASSWORD"]
+                                     ?? configuration["SeedUserPasswords:SuperAdmin"];
+            if (string.IsNullOrWhiteSpace(superAdminPassword) || superAdminPassword.StartsWith("REPLACE_WITH_"))
+            {
+                superAdminPassword = "SuperAdmin@123!";
+            }
+            await EnsureUserAsync(serviceProvider, userManager, logger, superAdminEmail, superAdminPassword, UserRoles.SuperAdmin);
         }
-        await EnsureUserAsync(userManager, logger, superAdminEmail, superAdminPassword, UserRoles.SuperAdmin);
+        catch (Exception saEx)
+        {
+            logger?.LogError(saEx, "Failed to seed SuperAdmin account");
+        }
 
         // 3. Admin Seed Account Initialization
-        var adminEmail = "admin@skfabricator.com";
-        var adminPassword = configuration["SeedUserPasswords:Admin"];
-        if (string.IsNullOrWhiteSpace(adminPassword) || adminPassword.StartsWith("REPLACE_WITH_"))
+        try
         {
-            adminPassword = "Admin@123!";
+            var adminEmail = "admin@skfabricator.com";
+            var adminPassword = configuration["SeedUserPasswords:Admin"];
+            if (string.IsNullOrWhiteSpace(adminPassword) || adminPassword.StartsWith("REPLACE_WITH_"))
+            {
+                adminPassword = "Admin@123!";
+            }
+            await EnsureUserAsync(serviceProvider, userManager, logger, adminEmail, adminPassword, UserRoles.Admin);
         }
-        await EnsureUserAsync(userManager, logger, adminEmail, adminPassword, UserRoles.Admin);
+        catch (Exception aEx)
+        {
+            logger?.LogError(aEx, "Failed to seed Admin account");
+        }
 
         // 4. Manager Seed Account Initialization
-        var managerEmail = "manager@skfabricator.com";
-        var managerPassword = configuration["SeedUserPasswords:Manager"];
-        if (string.IsNullOrWhiteSpace(managerPassword) || managerPassword.StartsWith("REPLACE_WITH_"))
+        try
         {
-            managerPassword = "Manager@123!";
+            var managerEmail = "manager@skfabricator.com";
+            var managerPassword = configuration["SeedUserPasswords:Manager"];
+            if (string.IsNullOrWhiteSpace(managerPassword) || managerPassword.StartsWith("REPLACE_WITH_"))
+            {
+                managerPassword = "Manager@123!";
+            }
+            await EnsureUserAsync(serviceProvider, userManager, logger, managerEmail, managerPassword, UserRoles.Manager);
         }
-        await EnsureUserAsync(userManager, logger, managerEmail, managerPassword, UserRoles.Manager);
+        catch (Exception mEx)
+        {
+            logger?.LogError(mEx, "Failed to seed Manager account");
+        }
     }
 
     private static Dictionary<string, List<string>> GetRolePermissionMatrix()
@@ -182,21 +219,22 @@ public static class SeedData
     }
 
     private static async Task EnsureUserAsync(
+        IServiceProvider serviceProvider,
         UserManager<ApplicationUser> userManager,
         ILogger? logger,
         string email,
         string password,
         string role)
     {
+        var normalizedEmail = email.ToUpperInvariant();
+        var passwordHasher = new PasswordHasher<ApplicationUser>();
+
         try
         {
-            var normalizedEmail = email.ToUpperInvariant();
             var user = await userManager.FindByEmailAsync(email) 
                        ?? await userManager.FindByNameAsync(email)
                        ?? await userManager.FindByEmailAsync(normalizedEmail)
                        ?? userManager.Users.FirstOrDefault(u => u.Email != null && (u.Email.ToLower() == email.ToLower() || u.UserName.ToLower() == email.ToLower()));
-
-            var passwordHasher = new PasswordHasher<ApplicationUser>();
 
             if (user == null)
             {
@@ -221,7 +259,7 @@ public static class SeedData
                 var createRes = await userManager.CreateAsync(user);
                 if (!createRes.Succeeded)
                 {
-                    logger?.LogWarning("CreateAsync failed for {Email}: {Errors}", email, string.Join(", ", createRes.Errors.Select(e => e.Description)));
+                    logger?.LogWarning("UserManager CreateAsync failed for {Email}: {Errors}. Trying DbContext direct insert.", email, string.Join(", ", createRes.Errors.Select(e => e.Description)));
                 }
             }
             else
@@ -242,20 +280,77 @@ public static class SeedData
                 var updateRes = await userManager.UpdateAsync(user);
                 if (!updateRes.Succeeded)
                 {
-                    logger?.LogWarning("UpdateAsync failed for {Email}: {Errors}", email, string.Join(", ", updateRes.Errors.Select(e => e.Description)));
+                    logger?.LogWarning("UserManager UpdateAsync failed for {Email}: {Errors}. Trying DbContext direct update.", email, string.Join(", ", updateRes.Errors.Select(e => e.Description)));
                 }
             }
 
-            if (!await userManager.IsInRoleAsync(user, role))
+            try
             {
-                await userManager.AddToRoleAsync(user, role);
+                if (!await userManager.IsInRoleAsync(user, role))
+                {
+                    await userManager.AddToRoleAsync(user, role);
+                }
             }
-
-            logger?.LogInformation("Successfully verified and seeded user: {Email}", email);
+            catch (Exception rEx)
+            {
+                logger?.LogWarning(rEx, "Unable to assign role {Role} to {Email}", role, email);
+            }
         }
         catch (Exception ex)
         {
-            logger?.LogError(ex, "Failed to ensure seed user {Email}", email);
+            logger?.LogWarning(ex, "UserManager encountered an error for {Email}. Falling back to direct ApplicationDbContext persistence.", email);
+        }
+
+        // Direct ApplicationDbContext Failsafe to guarantee user exists in PostgreSQL DB
+        try
+        {
+            var dbContext = serviceProvider.GetRequiredService<ApplicationDbContext>();
+            var dbUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email || u.NormalizedEmail == normalizedEmail);
+            if (dbUser == null)
+            {
+                dbUser = new ApplicationUser
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    UserName = email,
+                    Email = email,
+                    NormalizedUserName = normalizedEmail,
+                    NormalizedEmail = normalizedEmail,
+                    Role = role,
+                    EmailConfirmed = true,
+                    LockoutEnabled = false,
+                    LockoutEnd = null,
+                    AccessFailedCount = 0,
+                    PasswordChangeRequired = false,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    ConcurrencyStamp = Guid.NewGuid().ToString()
+                };
+                dbUser.PasswordHash = passwordHasher.HashPassword(dbUser, password);
+                dbContext.Users.Add(dbUser);
+                await dbContext.SaveChangesAsync();
+                logger?.LogInformation("Direct ApplicationDbContext created seed user: {Email}", email);
+            }
+            else
+            {
+                dbUser.UserName = email;
+                dbUser.Email = email;
+                dbUser.NormalizedEmail = normalizedEmail;
+                dbUser.NormalizedUserName = normalizedEmail;
+                dbUser.EmailConfirmed = true;
+                dbUser.LockoutEnabled = false;
+                dbUser.LockoutEnd = null;
+                dbUser.AccessFailedCount = 0;
+                dbUser.Role = role;
+                dbUser.PasswordChangeRequired = false;
+                dbUser.SecurityStamp = Guid.NewGuid().ToString();
+                dbUser.PasswordHash = passwordHasher.HashPassword(dbUser, password);
+                dbContext.Users.Update(dbUser);
+                await dbContext.SaveChangesAsync();
+                logger?.LogInformation("Direct ApplicationDbContext updated seed user: {Email}", email);
+            }
+        }
+        catch (Exception dbEx)
+        {
+            logger?.LogError(dbEx, "Direct ApplicationDbContext failsafe error for {Email}", email);
         }
     }
 }
