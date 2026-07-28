@@ -66,6 +66,21 @@ public static class DatabaseExtensions
                     logger.LogWarning(mEx, "MigrateAsync fallback. Executing EnsureCreatedAsync for PostgreSQL.");
                     await context.Database.EnsureCreatedAsync();
                 }
+
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""Role"" text NULL;
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""RefreshToken"" text NULL;
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""RefreshTokenExpiryTime"" timestamp with time zone NOT NULL DEFAULT '0001-01-01 00:00:00+00';
+                        ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PasswordChangeRequired"" boolean NOT NULL DEFAULT false;
+                    ");
+                    logger.LogInformation("PostgreSQL AspNetUsers schema columns verified successfully.");
+                }
+                catch (Exception sqlEx)
+                {
+                    logger.LogWarning(sqlEx, "Notice: Unable to execute column alter verification on AspNetUsers.");
+                }
             }
             else
             {

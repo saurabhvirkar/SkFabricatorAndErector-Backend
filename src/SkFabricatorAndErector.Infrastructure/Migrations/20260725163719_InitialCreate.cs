@@ -33,6 +33,7 @@ public partial class InitialCreate : Migration
                     Role = table.Column<string>(type: "TEXT", nullable: true),
                     RefreshToken = table.Column<string>(type: "TEXT", nullable: true),
                     RefreshTokenExpiryTime = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    PasswordChangeRequired = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
                     UserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
