@@ -20,13 +20,10 @@ RUN dotnet publish src/SkFabricatorAndErector.Api/SkFabricatorAndErector.Api.csp
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Security: run as non-root user
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser  --system --uid 1001 --ingroup appgroup appuser
+COPY --from=build /app/publish .
 
-COPY --from=build --chown=appuser:appgroup /app/publish .
-
-USER appuser
+# Use built-in non-root user in .NET 10 runtime image ($APP_UID = 1654)
+USER $APP_UID
 
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
