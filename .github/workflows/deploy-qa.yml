@@ -1,12 +1,13 @@
-name: Deploy Backend to QA Environment
+name: Deploy Backend to Render (QA)
 
 on:
   push:
     branches: [ develop ]
+  workflow_dispatch:
 
 jobs:
   deploy-qa:
-    name: Build & Deploy QA Container
+    name: Trigger Render QA Deployment
     runs-on: ubuntu-latest
     environment: QA
 
@@ -14,38 +15,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry (GHCR)
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Push QA Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/skfabricator-api:qa-${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/skfabricator-api:qa-latest
-
-      - name: Deploy to Oracle VM via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.ORACLE_VM_HOST }}
-          username: deployer
-          key: ${{ secrets.ORACLE_VM_SSH_KEY }}
-          script: |
-            cd /opt/skfabricator/qa || exit 1
-            export DOCKER_REGISTRY=ghcr.io
-            export IMAGE_NAME=${{ github.repository_owner }}/skfabricator-api
-            export IMAGE_TAG=${{ github.sha }}
-            export POSTGRES_QA_CONN_STR="${{ secrets.POSTGRES_QA_CONN_STR }}"
-            export JWT_QA_SECRET="${{ secrets.JWT_QA_SECRET }}"
-            export CLOUDINARY_QA_CLOUD_NAME="${{ secrets.CLOUDINARY_QA_CLOUD_NAME }}"
-            export CLOUDINARY_QA_API_KEY="${{ secrets.CLOUDINARY_QA_API_KEY }}"
-            export CLOUDINARY_QA_API_SECRET="${{ secrets.CLOUDINARY_QA_API_SECRET }}"
-            docker compose -f docker-compose.qa.yml pull
-            docker compose -f docker-compose.qa.yml up -d --remove-orphans
+      - name: Trigger Render QA Deploy Webhook
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_QA_API_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "::warning ::RENDER_QA_API_DEPLOY_HOOK is not set in GitHub Secrets. Skipping webhook trigger."
+          else
+            echo "Triggering Render QA Deployment..."
+            curl -s -X POST "$RENDER_DEPLOY_HOOK"
+            echo "Render QA Deployment Triggered Successfully."
+          fi
