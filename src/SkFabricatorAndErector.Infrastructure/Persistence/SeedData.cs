@@ -26,7 +26,14 @@ public static class SeedData
             if (role == null)
             {
                 role = new IdentityRole(roleName);
-                await roleManager.CreateAsync(role);
+                try
+                {
+                    await roleManager.CreateAsync(role);
+                }
+                catch (Exception rEx)
+                {
+                    logger?.LogWarning("Notice: Unable to create role '{Role}': {Message}", roleName, rEx.Message);
+                }
             }
 
             var existingClaims = await roleManager.GetClaimsAsync(role);
