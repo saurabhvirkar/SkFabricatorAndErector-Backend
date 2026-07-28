@@ -48,9 +48,9 @@ services:
       - key: CloudinarySettings__CloudName
         value: dniawq4zi
       - key: CloudinarySettings__ApiKey
-        value: "319362234799618"
+        value: "398386795366985"
       - key: CloudinarySettings__ApiSecret
-        value: PNHVpskpmPf9z6zp8KwQQSRmXGg
+        value: TAeTFMq72Gc0S21jrIg0Baulguo
 
       # SMTP Email Configuration
       - key: SmtpSettings__Host
