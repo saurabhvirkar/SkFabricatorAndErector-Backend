@@ -11,6 +11,8 @@
     <!-- Roslyn code quality -->
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
 
     <!-- Treat security-advisory NuGet warnings as build warnings (not errors),
          so the build stays green while still surfacing vulnerability notices. -->

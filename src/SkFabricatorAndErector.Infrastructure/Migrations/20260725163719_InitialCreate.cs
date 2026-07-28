@@ -1,13 +1,13 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace SkFabricatorAndErector.Infrastructure.Migrations
+namespace SkFabricatorAndErector.Infrastructure.Migrations;
+
+/// <inheritdoc />
+public partial class InitialCreate : Migration
 {
-    /// <inheritdoc />
-    public partial class InitialCreate : Migration
-    {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -367,4 +367,4 @@ namespace SkFabricatorAndErector.Infrastructure.Migrations
                 name: "AspNetUsers");
         }
     }
-}
+
