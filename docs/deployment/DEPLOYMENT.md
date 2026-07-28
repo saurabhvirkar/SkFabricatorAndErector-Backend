@@ -90,7 +90,7 @@ In Render Dashboard → Web Service → **Environment**, add these **secret** va
 |---|---|
 | `ConnectionStrings__DefaultConnection` | PostgreSQL Internal URL from Step 1 |
 | `Jwt__Issuer` | Your API's public URL (e.g. `https://sk-fabricator-api.onrender.com`) |
-| `Jwt__Audience` | Your Angular frontend URL (e.g. `https://skfabricatorui.onrender.com`) |
+| `Jwt__Audience` | Your Angular frontend URL (e.g. `https://skfabricator.onrender.com`) |
 | `Jwt__Key` | Random 32+ character secret key |
 | `CloudinarySettings__CloudName` | From Cloudinary Dashboard |
 | `CloudinarySettings__ApiKey` | From Cloudinary Dashboard |

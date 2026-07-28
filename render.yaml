@@ -36,7 +36,7 @@ services:
       - key: Jwt__Issuer
         value: https://skfabricatorapi.onrender.com
       - key: Jwt__Audience
-        value: https://skfabricatorui.onrender.com
+        value: https://skfabricator.onrender.com
       - key: Jwt__Key
         generateValue: true
       - key: Jwt__ExpireDays
@@ -74,7 +74,7 @@ services:
 
       # Allowed CORS Origins
       - key: AllowedOrigins__0
-        value: "https://skfabricatorui.onrender.com"
+        value: "https://skfabricator.onrender.com"
       - key: AllowedOrigins__1
         value: "http://localhost:4200"
 
@@ -82,7 +82,7 @@ services:
   # Service 2: Angular Frontend UI (Frontend)
   # ----------------------------------------------------------------------------
   - type: web
-    name: skfabricatorui
+    name: skfabricator
     plan: free
     env: docker
     repo: https://github.com/saurabhvirkar/SkFabricatorAndErector-Frontend

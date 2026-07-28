@@ -45,7 +45,7 @@ app.Use(async (context, next) =>
     {
         var origin = context.Request.Headers.Origin.ToString();
         var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-                             ?? ["http://localhost:4200", "https://skfabricatorui.onrender.com"];
+                             ?? ["http://localhost:4200", "https://skfabricator.onrender.com"];
 
         if (!string.IsNullOrEmpty(origin) && allowedOrigins.Contains(origin))
         {
