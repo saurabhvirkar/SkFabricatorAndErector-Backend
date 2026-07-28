@@ -112,6 +112,14 @@ public static class DatabaseExtensions
                     logger.LogWarning(sqlEx, "Notice: Unable to execute schema alter verification on PostgreSQL.");
                 }
             }
+            else if (context.Database.IsSqlite())
+            {
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE AspNetUsers ADD COLUMN Role TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE AspNetUsers ADD COLUMN RefreshToken TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE AspNetUsers ADD COLUMN RefreshTokenExpiryTime TEXT NOT NULL DEFAULT '0001-01-01 00:00:00';"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE AspNetUsers ADD COLUMN PasswordChangeRequired INTEGER NOT NULL DEFAULT 0;"); } catch { }
+                logger.LogInformation("SQLite schema columns verified successfully.");
+            }
 
             await SeedData.InitializeAsync(serviceProvider, configuration);
             logger.LogInformation("Database seeded successfully.");
