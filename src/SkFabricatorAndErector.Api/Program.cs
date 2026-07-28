@@ -86,6 +86,33 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow })).AllowAnonymous();
 app.MapGet("/health/live", () => Results.Ok(new { status = "Alive", timestamp = DateTime.UtcNow })).AllowAnonymous();
 app.MapGet("/health/ready", () => Results.Ok(new { status = "Ready", timestamp = DateTime.UtcNow })).AllowAnonymous();
+app.MapGet("/health/db-status", (IServiceProvider sp) =>
+{
+    try
+    {
+        using var scope = sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SkFabricatorAndErector.Infrastructure.Persistence.ApplicationDbContext>();
+        var connStr = db.Database.GetConnectionString();
+        var connHost = connStr != null ? (connStr.Contains('@') ? connStr.Split('@')[1].Split('/')[0] : connStr) : "Unknown";
+        var userCount = db.Users.Count();
+        var users = db.Users.Select(u => new { u.Email, u.UserName, u.Role, u.EmailConfirmed }).ToList();
+        return Results.Ok(new {
+            InitLog = SkFabricatorAndErector.Infrastructure.Persistence.DatabaseExtensions.LastInitLog,
+            Provider = db.Database.ProviderName,
+            ConnHostSnippet = connHost,
+            UserCount = userCount,
+            Users = users
+        });
+    }
+    catch (Exception ex)
+    {
+        return Results.Ok(new {
+            InitLog = SkFabricatorAndErector.Infrastructure.Persistence.DatabaseExtensions.LastInitLog,
+            Error = ex.Message,
+            StackTrace = ex.StackTrace
+        });
+    }
+}).AllowAnonymous();
 
 // Scalar API Explorer — development only
 // OpenAPI JSON : /openapi/v1.json

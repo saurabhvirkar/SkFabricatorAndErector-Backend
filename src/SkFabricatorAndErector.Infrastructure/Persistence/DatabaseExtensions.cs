@@ -50,23 +50,46 @@ public static class DatabaseExtensions
         return services;
     }
 
+    public static string LastInitLog = "Not initialized yet";
+
     public static async Task UseDatabaseInitialization(this IApplicationBuilder app, IServiceProvider services, IConfiguration configuration)
     {
         using var scope = services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
         var logger = serviceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
+        var logBuilder = new System.Text.StringBuilder();
+
+        void AppendLog(string msg)
+        {
+            var line = $"[{DateTime.UtcNow:HH:mm:ss}] {msg}";
+            logBuilder.AppendLine(line);
+            LastInitLog = logBuilder.ToString();
+        }
+
+        AppendLog("Starting database initialization...");
+
         try
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+            AppendLog($"DbContext provider: {context.Database.ProviderName}");
+
             try
             {
                 await context.Database.MigrateAsync();
-                logger.LogInformation("EF Core Database Migrations applied successfully.");
+                AppendLog("EF Core Database Migrations applied successfully.");
             }
             catch (Exception mEx)
             {
-                logger.LogWarning(mEx, "MigrateAsync fallback. Executing EnsureCreatedAsync.");
-                await context.Database.EnsureCreatedAsync();
+                AppendLog($"MigrateAsync warning: {mEx.Message}. Trying EnsureCreatedAsync.");
+                try
+                {
+                    await context.Database.EnsureCreatedAsync();
+                    AppendLog("EnsureCreatedAsync completed.");
+                }
+                catch (Exception ecEx)
+                {
+                    AppendLog($"EnsureCreatedAsync error: {ecEx.Message}");
+                }
             }
 
             if (context.Database.IsNpgsql())
@@ -109,11 +132,11 @@ public static class DatabaseExtensions
                             END IF;
                         END $$;
                     ");
-                    logger.LogInformation("PostgreSQL schema columns and identity sequences verified successfully.");
+                    AppendLog("PostgreSQL schema columns and identity sequences verified successfully.");
                 }
                 catch (Exception sqlEx)
                 {
-                    logger.LogWarning(sqlEx, "Notice: Unable to execute schema alter verification on PostgreSQL.");
+                    AppendLog($"PostgreSQL schema alter warning: {sqlEx.Message}");
                 }
             }
             else if (context.Database.IsSqlite())
