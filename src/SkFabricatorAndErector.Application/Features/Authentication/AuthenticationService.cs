@@ -28,25 +28,37 @@ public class AuthenticationService(
         var searchEmail = request.Email.Trim();
         var user = await _userManager.FindByEmailAsync(searchEmail)
                    ?? await _userManager.FindByNameAsync(searchEmail)
-                   ?? _userManager.Users.FirstOrDefault(u => u.Email != null && u.Email.ToLower() == searchEmail.ToLower());
+                   ?? await _userManager.FindByEmailAsync(searchEmail.ToUpperInvariant())
+                   ?? _userManager.Users.FirstOrDefault(u => u.Email != null && (u.Email.ToLower() == searchEmail.ToLower() || u.UserName.ToLower() == searchEmail.ToLower()));
 
         if (user == null)
         {
-            return null;
+            var count = _userManager.Users.Count();
+            var allEmails = string.Join(", ", _userManager.Users.Select(u => u.Email ?? u.UserName).Take(5));
+            throw new Application.Exceptions.BusinessRuleException($"Diagnostic: User '{request.Email}' not found in database. Total users count in DB: {count}. Existing emails: [{allEmails}]");
         }
 
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!isPasswordValid)
         {
-            var altPassword = request.Password.EndsWith("!") 
-                ? request.Password[..^1] 
-                : request.Password + "!";
-            isPasswordValid = await _userManager.CheckPasswordAsync(user, altPassword);
+            var variants = new List<string>();
+            if (request.Password.EndsWith("!")) variants.Add(request.Password[..^1]);
+            else variants.Add(request.Password + "!");
+
+            foreach (var variant in variants)
+            {
+                if (await _userManager.CheckPasswordAsync(user, variant))
+                {
+                    isPasswordValid = true;
+                    break;
+                }
+            }
         }
 
         if (!isPasswordValid)
         {
-            return null;
+            var pwdHashSnippet = user.PasswordHash != null ? user.PasswordHash[..Math.Min(15, user.PasswordHash.Length)] : "NULL";
+            throw new Application.Exceptions.BusinessRuleException($"Diagnostic: Invalid password for '{user.Email}'. DB Hash Prefix: '{pwdHashSnippet}', EmailConfirmed: {user.EmailConfirmed}, LockoutEnabled: {user.LockoutEnabled}, LockoutEnd: {user.LockoutEnd}");
         }
 
         var token = await _tokenGenerator.GenerateJwtTokenAsync(user);
