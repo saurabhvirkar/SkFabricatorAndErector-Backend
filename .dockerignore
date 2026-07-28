@@ -1,40 +1,23 @@
-# Git
-.git
-.gitignore
-.gitattributes
-
-# Build artifacts
-**/bin/
-**/obj/
-
-# Test projects (not needed in production image)
-tests/
-
-# Documentation
+**/.classpath
+**/.dockerignore
+**/.env
+**/.git
+**/.gitignore
+**/.project
+**/.settings
+**/.toolstarget
+**/.vs
+**/.vscode
+**/*.*proj.user
+**/bin
+**/build
+**/docker-compose*
+**/Dockerfile*
+**/node_modules
+**/obj
+**/out
+**/publish
+backup/
+deploy/
 docs/
-*.md
-!README.md
-
-# IDE/editor files
-.vs/
-.vscode/
-.idea/
-*.user
-*.suo
-
-# Docker files (not needed inside container)
-Dockerfile*
-docker-compose*
-.dockerignore
-
-# CI/CD
-.github/
-
-# Environment files with secrets
-*.env
-.env*
-appsettings.Development.json
-
-# Temp/log files
-*.log
-*.tmp
+README.md

@@ -11,13 +11,15 @@ namespace SkFabricatorAndErector.Infrastructure.ExternalServices.Media;
 public class CloudinaryPhotoService : IPhotoService
 {
     private readonly Cloudinary _cloudinary;
+    private readonly CloudinarySettings _config;
 
     public CloudinaryPhotoService(IOptions<CloudinarySettings> config)
     {
+        _config = config.Value;
         var acc = new Account(
-            config.Value.CloudName,
-            config.Value.ApiKey,
-            config.Value.ApiSecret
+            _config.CloudName,
+            _config.ApiKey,
+            _config.ApiSecret
         );
 
         _cloudinary = new Cloudinary(acc);
@@ -44,7 +46,7 @@ public class CloudinaryPhotoService : IPhotoService
             {
                 File = new FileDescription(safeServerFileName, stream),
                 Transformation = new Transformation().Height(500).Width(500).Crop("fill").Gravity("face"),
-                Folder = "sk-fabricator"
+                Folder = string.IsNullOrWhiteSpace(_config.Folder) ? "sk-fabricator" : _config.Folder
             };
 
             var result = await _cloudinary.UploadAsync(uploadParams);

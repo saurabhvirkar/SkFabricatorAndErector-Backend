@@ -28,6 +28,8 @@ builder.Services.AddCorsPolicy(builder.Configuration);
 // Task 11 — Security hardening: rate limiting
 builder.Services.AddRateLimitingPolicies();
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // --- Database Initialization ---
@@ -63,7 +65,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 
-// HTTPS Redirection — enabled in production only (Render handles TLS termination)
+// HTTPS Redirection — enabled in production only (Nginx handles TLS termination)
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
@@ -71,8 +73,6 @@ if (!app.Environment.IsDevelopment())
 
 app.UseCorsPolicy();
 app.UseMiddleware<ErrorHandlingMiddleware>();
-
-// (OpenAPI/Scalar endpoints are mapped below alongside MapControllers)
 
 // Rate limiting must be after routing
 app.UseRateLimiter();
@@ -82,9 +82,10 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Minimal health probe — used by Docker HEALTHCHECK and Render platform
-app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }))
-   .AllowAnonymous();
+// Health probes — used by Docker HEALTHCHECK, Nginx, and UptimeRobot
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow })).AllowAnonymous();
+app.MapGet("/health/live", () => Results.Ok(new { status = "Alive", timestamp = DateTime.UtcNow })).AllowAnonymous();
+app.MapGet("/health/ready", () => Results.Ok(new { status = "Ready", timestamp = DateTime.UtcNow })).AllowAnonymous();
 
 // Scalar API Explorer — development only
 // OpenAPI JSON : /openapi/v1.json
