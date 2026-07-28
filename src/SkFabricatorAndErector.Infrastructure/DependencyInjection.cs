@@ -29,7 +29,12 @@ public static class DependencyInjection
 
         // JWT Authentication Configuration
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() ?? new JwtSettings();
-        var key = Encoding.UTF8.GetBytes(jwtSettings.Key);
+        var rawKey = string.IsNullOrWhiteSpace(jwtSettings.Key) ? "DEFAULT_SECRET_KEY_MIN_32_BYTES_PADDING_SECURE" : jwtSettings.Key;
+        var key = Encoding.UTF8.GetBytes(rawKey);
+        if (key.Length < 32)
+        {
+            Array.Resize(ref key, 32);
+        }
 
         services.AddAuthentication(options =>
         {

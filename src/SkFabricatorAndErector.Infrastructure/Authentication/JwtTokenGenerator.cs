@@ -49,7 +49,7 @@ public class JwtTokenGenerator(
             }
         }
 
-        var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+        var authSigningKey = new SymmetricSecurityKey(GetSigningKeyBytes());
 
         var expiryMinutes = _jwtSettings.ExpireMinutes > 0 ? _jwtSettings.ExpireMinutes : 30;
 
@@ -81,7 +81,7 @@ public class JwtTokenGenerator(
             ValidateAudience = false,
             ValidateIssuer = false,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key)),
+            IssuerSigningKey = new SymmetricSecurityKey(GetSigningKeyBytes()),
             ValidateLifetime = false
         };
 
@@ -95,5 +95,16 @@ public class JwtTokenGenerator(
         }
 
         return principal;
+    }
+
+    private byte[] GetSigningKeyBytes()
+    {
+        var rawKey = string.IsNullOrWhiteSpace(_jwtSettings.Key) ? "DEFAULT_SECRET_KEY_MIN_32_BYTES_PADDING_SECURE" : _jwtSettings.Key;
+        var bytes = Encoding.UTF8.GetBytes(rawKey);
+        if (bytes.Length < 32)
+        {
+            Array.Resize(ref bytes, 32);
+        }
+        return bytes;
     }
 }
