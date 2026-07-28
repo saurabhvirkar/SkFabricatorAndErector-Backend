@@ -18,9 +18,11 @@ public static class DatabaseExtensions
 
         services.AddDbContext<ApplicationDbContext>(options =>
         {
-            if (provider == "postgres")
+            if (provider == "postgres" || provider == "postgresql")
             {
-                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
+                var rawConnStr = configuration.GetConnectionString("DefaultConnection") ?? "";
+                var formattedConnStr = ConvertPostgresConnectionString(rawConnStr);
+                options.UseNpgsql(formattedConnStr);
             }
             else
             {
@@ -68,5 +70,31 @@ public static class DatabaseExtensions
         {
             logger.LogError(ex, "An error occurred while migrating or seeding the DB.");
         }
+    }
+
+    private static string ConvertPostgresConnectionString(string connString)
+    {
+        if (string.IsNullOrWhiteSpace(connString)) return connString;
+        if (connString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+            connString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var uri = new Uri(connString);
+                var userInfo = uri.UserInfo.Split(':');
+                var username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "";
+                var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+                var database = uri.AbsolutePath.TrimStart('/');
+                var host = uri.Host;
+                var port = uri.Port > 0 ? uri.Port : 5432;
+
+                return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+            }
+            catch
+            {
+                return connString;
+            }
+        }
+        return connString;
     }
 }
