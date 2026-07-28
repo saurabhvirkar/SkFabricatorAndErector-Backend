@@ -88,6 +88,8 @@ public static class SeedData
         }
         else
         {
+            superAdminUser.NormalizedEmail = superAdminEmail.ToUpperInvariant();
+            superAdminUser.NormalizedUserName = superAdminEmail.ToUpperInvariant();
             superAdminUser.PasswordHash = passwordHasher.HashPassword(superAdminUser, superAdminPassword);
             superAdminUser.SecurityStamp = Guid.NewGuid().ToString();
             superAdminUser.EmailConfirmed = true;
@@ -109,7 +111,7 @@ public static class SeedData
         var admin = await userManager.FindByEmailAsync(adminEmail);
         if (admin == null)
         {
-            admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, Role = UserRoles.Admin, EmailConfirmed = true, SecurityStamp = Guid.NewGuid().ToString() };
+            admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, NormalizedEmail = adminEmail.ToUpperInvariant(), NormalizedUserName = adminEmail.ToUpperInvariant(), Role = UserRoles.Admin, EmailConfirmed = true, SecurityStamp = Guid.NewGuid().ToString() };
             var result = await userManager.CreateAsync(admin, adminPassword);
             if (result.Succeeded)
             {
@@ -118,6 +120,8 @@ public static class SeedData
         }
         else
         {
+            admin.NormalizedEmail = adminEmail.ToUpperInvariant();
+            admin.NormalizedUserName = adminEmail.ToUpperInvariant();
             admin.PasswordHash = passwordHasher.HashPassword(admin, adminPassword);
             admin.SecurityStamp = Guid.NewGuid().ToString();
             admin.EmailConfirmed = true;
@@ -139,7 +143,7 @@ public static class SeedData
         var manager = await userManager.FindByEmailAsync(managerEmail);
         if (manager == null)
         {
-            manager = new ApplicationUser { UserName = managerEmail, Email = managerEmail, Role = UserRoles.Manager, EmailConfirmed = true, SecurityStamp = Guid.NewGuid().ToString() };
+            manager = new ApplicationUser { UserName = managerEmail, Email = managerEmail, NormalizedEmail = managerEmail.ToUpperInvariant(), NormalizedUserName = managerEmail.ToUpperInvariant(), Role = UserRoles.Manager, EmailConfirmed = true, SecurityStamp = Guid.NewGuid().ToString() };
             var result = await userManager.CreateAsync(manager, managerPassword);
             if (result.Succeeded)
             {
@@ -148,6 +152,8 @@ public static class SeedData
         }
         else
         {
+            manager.NormalizedEmail = managerEmail.ToUpperInvariant();
+            manager.NormalizedUserName = managerEmail.ToUpperInvariant();
             manager.PasswordHash = passwordHasher.HashPassword(manager, managerPassword);
             manager.SecurityStamp = Guid.NewGuid().ToString();
             manager.EmailConfirmed = true;

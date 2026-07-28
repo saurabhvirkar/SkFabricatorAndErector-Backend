@@ -25,7 +25,11 @@ public class AuthenticationService(
             return null;
         }
 
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var searchEmail = request.Email.Trim();
+        var user = await _userManager.FindByEmailAsync(searchEmail)
+                   ?? await _userManager.FindByNameAsync(searchEmail)
+                   ?? _userManager.Users.FirstOrDefault(u => u.Email != null && u.Email.ToLower() == searchEmail.ToLower());
+
         if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
         {
             return null;
