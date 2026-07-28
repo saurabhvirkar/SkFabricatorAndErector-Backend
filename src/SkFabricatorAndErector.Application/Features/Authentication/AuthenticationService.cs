@@ -33,9 +33,7 @@ public class AuthenticationService(
 
         if (user == null)
         {
-            var count = _userManager.Users.Count();
-            var allEmails = string.Join(", ", _userManager.Users.Select(u => u.Email ?? u.UserName).Take(5));
-            throw new Application.Exceptions.BusinessRuleException($"Diagnostic: User '{request.Email}' not found in database. Total users count in DB: {count}. Existing emails: [{allEmails}]");
+            return null;
         }
 
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
@@ -57,8 +55,7 @@ public class AuthenticationService(
 
         if (!isPasswordValid)
         {
-            var pwdHashSnippet = user.PasswordHash != null ? user.PasswordHash[..Math.Min(15, user.PasswordHash.Length)] : "NULL";
-            throw new Application.Exceptions.BusinessRuleException($"Diagnostic: Invalid password for '{user.Email}'. DB Hash Prefix: '{pwdHashSnippet}', EmailConfirmed: {user.EmailConfirmed}, LockoutEnabled: {user.LockoutEnabled}, LockoutEnd: {user.LockoutEnd}");
+            return null;
         }
 
         var token = await _tokenGenerator.GenerateJwtTokenAsync(user);
