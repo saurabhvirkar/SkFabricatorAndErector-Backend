@@ -24,13 +24,11 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
 
-      # Auto-linked database connection string from Render PostgreSQL
+      # Connection string pointing directly to Neon PostgreSQL
       - key: DatabaseProvider
         value: PostgreSQL
       - key: ConnectionStrings__DefaultConnection
-        fromDatabase:
-          name: skfabricatordb
-          property: connectionString
+        value: "postgresql://neondb_owner:npg_B0sVglPD3JqI@ep-crimson-sea-azc9xh4g-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
       # JWT Authentication Configuration
       - key: Jwt__Issuer
@@ -77,6 +75,10 @@ services:
         value: "https://skfabricator.onrender.com"
       - key: AllowedOrigins__1
         value: "http://localhost:4200"
+      - key: AllowedOrigins__2
+        value: "https://skfabricatorui.onrender.com"
+      - key: AllowedOrigins__3
+        value: "https://sk-fabricator.pages.dev"
 
   # ----------------------------------------------------------------------------
   # Service 2: Angular Frontend UI (Frontend)
