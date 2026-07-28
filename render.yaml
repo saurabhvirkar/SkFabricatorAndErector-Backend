@@ -46,11 +46,11 @@ services:
 
       # Cloudinary Media Storage Configuration
       - key: CloudinarySettings__CloudName
-        sync: false
+        value: dniawq4zi
       - key: CloudinarySettings__ApiKey
-        sync: false
+        value: "319362234799618"
       - key: CloudinarySettings__ApiSecret
-        sync: false
+        value: PNHVpskpmPf9z6zp8KwQQSRmXGg
 
       # SMTP Email Configuration
       - key: SmtpSettings__Host

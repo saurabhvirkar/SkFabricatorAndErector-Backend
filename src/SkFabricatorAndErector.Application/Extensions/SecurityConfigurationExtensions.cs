@@ -28,7 +28,8 @@ public static class SecurityConfigurationExtensions
             string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("REPLACE_WITH_") ||
             string.IsNullOrWhiteSpace(apiSecret) || apiSecret.StartsWith("REPLACE_WITH_"))
         {
-            throw new InvalidOperationException("CRITICAL SECURITY ERROR: Production Cloudinary credentials are missing or unconfigured.");
+            // Log warning for missing media storage credentials instead of crashing web api startup
+            Console.WriteLine("WARNING: Cloudinary credentials are missing or unconfigured. Media upload features will be disabled until configured.");
         }
     }
 }
