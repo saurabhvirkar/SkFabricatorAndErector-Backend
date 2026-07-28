@@ -1,6 +1,14 @@
 # ------------------------------------------------------------------------------
-# Render Blueprint Specification for SK Fabricator & Erector (Free Tier)
+# Complete One-Click Render Blueprint Specification for SK Fabricator & Erector
 # ------------------------------------------------------------------------------
+
+databases:
+  - name: skfabricatordb
+    databaseName: skfabricatordb
+    user: skfabricatordb_user
+    plan: free
+    region: singapore
+
 services:
   # ----------------------------------------------------------------------------
   # Service 1: ASP.NET Core Web API (Backend)
@@ -11,15 +19,18 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile.api
     healthCheckPath: /health
+    region: singapore
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
 
-      # Database Connection String
+      # Auto-linked database connection string from Render PostgreSQL
       - key: DatabaseProvider
         value: PostgreSQL
       - key: ConnectionStrings__DefaultConnection
-        sync: false
+        fromDatabase:
+          name: skfabricatordb
+          property: connectionString
 
       # JWT Authentication Configuration
       - key: Jwt__Issuer
@@ -27,7 +38,7 @@ services:
       - key: Jwt__Audience
         value: https://skfabricatorui.onrender.com
       - key: Jwt__Key
-        sync: false
+        generateValue: true
       - key: Jwt__ExpireDays
         value: "1"
       - key: Jwt__RefreshTokenExpireDays
@@ -41,7 +52,7 @@ services:
       - key: CloudinarySettings__ApiSecret
         sync: false
 
-      # SMTP Email Configuration (SmtpSettings)
+      # SMTP Email Configuration
       - key: SmtpSettings__Host
         value: smtp.gmail.com
       - key: SmtpSettings__Port
@@ -55,37 +66,27 @@ services:
       - key: SmtpSettings__ToEmail
         sync: false
 
-      # Email Configuration Aliases (Email)
-      - key: Email__SmtpServer
-        value: smtp.gmail.com
-      - key: Email__SmtpPort
-        value: "587"
-      - key: Email__From
-        sync: false
-      - key: Email__To
-        sync: false
-      - key: Email__Username
-        sync: false
-      - key: Email__Password
-        sync: false
-
-      # Initial Seed Accounts Configuration
+      # Initial Seed User Passwords
       - key: SeedUserPasswords__Admin
-        sync: false
+        value: "Admin@123"
       - key: SeedUserPasswords__Manager
-        sync: false
+        value: "Manager@123"
 
-      # CORS Allowed Origins
+      # Allowed CORS Origins
       - key: AllowedOrigins__0
         value: "https://skfabricatorui.onrender.com"
       - key: AllowedOrigins__1
         value: "http://localhost:4200"
 
   # ----------------------------------------------------------------------------
-  # Service 2: Angular Frontend UI
+  # Service 2: Angular Frontend UI (Frontend)
   # ----------------------------------------------------------------------------
   - type: web
     name: skfabricatorui
     plan: free
     env: docker
     dockerfilePath: ./Dockerfile.ui
+    region: singapore
+    envVars:
+      - key: API_URL
+        value: https://skfabricatorapi.onrender.com/api
