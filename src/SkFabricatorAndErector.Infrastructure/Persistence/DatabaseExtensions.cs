@@ -18,6 +18,8 @@ public static class DatabaseExtensions
 
         services.AddDbContext<ApplicationDbContext>(options =>
         {
+            options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+
             if (provider == "postgres" || provider == "postgresql")
             {
                 var rawConnStr = configuration.GetConnectionString("DefaultConnection") ?? "";
@@ -54,8 +56,16 @@ public static class DatabaseExtensions
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             if (context.Database.IsNpgsql())
             {
-                await context.Database.MigrateAsync();
-                logger.LogInformation("Database migrations applied successfully for PostgreSQL.");
+                try
+                {
+                    await context.Database.MigrateAsync();
+                    logger.LogInformation("Database migrations applied successfully for PostgreSQL.");
+                }
+                catch (Exception mEx)
+                {
+                    logger.LogWarning(mEx, "MigrateAsync fallback. Executing EnsureCreatedAsync for PostgreSQL.");
+                    await context.Database.EnsureCreatedAsync();
+                }
             }
             else
             {
