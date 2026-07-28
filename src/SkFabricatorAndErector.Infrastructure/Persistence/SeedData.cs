@@ -55,6 +55,8 @@ public static class SeedData
             }
         }
 
+        var passwordHasher = serviceProvider.GetRequiredService<IPasswordHasher<ApplicationUser>>();
+
         // 2. SuperAdmin Bootstrap Account
         var superAdminEmail = "superadmin@skfabricator.com";
         var superAdminPassword = configuration["BOOTSTRAP_ADMIN_PASSWORD"]
@@ -73,6 +75,7 @@ public static class SeedData
                 Email = superAdminEmail,
                 Role = UserRoles.SuperAdmin,
                 EmailConfirmed = true,
+                SecurityStamp = Guid.NewGuid().ToString(),
                 PasswordChangeRequired = false
             };
 
@@ -85,8 +88,10 @@ public static class SeedData
         }
         else
         {
-            var resetToken = await userManager.GeneratePasswordResetTokenAsync(superAdminUser);
-            await userManager.ResetPasswordAsync(superAdminUser, resetToken, superAdminPassword);
+            superAdminUser.PasswordHash = passwordHasher.HashPassword(superAdminUser, superAdminPassword);
+            superAdminUser.SecurityStamp = Guid.NewGuid().ToString();
+            superAdminUser.EmailConfirmed = true;
+            await userManager.UpdateAsync(superAdminUser);
             if (!await userManager.IsInRoleAsync(superAdminUser, UserRoles.SuperAdmin))
             {
                 await userManager.AddToRoleAsync(superAdminUser, UserRoles.SuperAdmin);
@@ -104,7 +109,7 @@ public static class SeedData
         var admin = await userManager.FindByEmailAsync(adminEmail);
         if (admin == null)
         {
-            admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, Role = UserRoles.Admin, EmailConfirmed = true };
+            admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, Role = UserRoles.Admin, EmailConfirmed = true, SecurityStamp = Guid.NewGuid().ToString() };
             var result = await userManager.CreateAsync(admin, adminPassword);
             if (result.Succeeded)
             {
@@ -113,8 +118,10 @@ public static class SeedData
         }
         else
         {
-            var resetToken = await userManager.GeneratePasswordResetTokenAsync(admin);
-            await userManager.ResetPasswordAsync(admin, resetToken, adminPassword);
+            admin.PasswordHash = passwordHasher.HashPassword(admin, adminPassword);
+            admin.SecurityStamp = Guid.NewGuid().ToString();
+            admin.EmailConfirmed = true;
+            await userManager.UpdateAsync(admin);
             if (!await userManager.IsInRoleAsync(admin, UserRoles.Admin))
             {
                 await userManager.AddToRoleAsync(admin, UserRoles.Admin);
@@ -132,7 +139,7 @@ public static class SeedData
         var manager = await userManager.FindByEmailAsync(managerEmail);
         if (manager == null)
         {
-            manager = new ApplicationUser { UserName = managerEmail, Email = managerEmail, Role = UserRoles.Manager, EmailConfirmed = true };
+            manager = new ApplicationUser { UserName = managerEmail, Email = managerEmail, Role = UserRoles.Manager, EmailConfirmed = true, SecurityStamp = Guid.NewGuid().ToString() };
             var result = await userManager.CreateAsync(manager, managerPassword);
             if (result.Succeeded)
             {
@@ -141,8 +148,10 @@ public static class SeedData
         }
         else
         {
-            var resetToken = await userManager.GeneratePasswordResetTokenAsync(manager);
-            await userManager.ResetPasswordAsync(manager, resetToken, managerPassword);
+            manager.PasswordHash = passwordHasher.HashPassword(manager, managerPassword);
+            manager.SecurityStamp = Guid.NewGuid().ToString();
+            manager.EmailConfirmed = true;
+            await userManager.UpdateAsync(manager);
             if (!await userManager.IsInRoleAsync(manager, UserRoles.Manager))
             {
                 await userManager.AddToRoleAsync(manager, UserRoles.Manager);
