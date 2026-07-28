@@ -55,107 +55,97 @@ public static class SeedData
             }
         }
 
-        // 2. One-Time Secure SuperAdmin Bootstrap Process
+        // 2. SuperAdmin Bootstrap Account
         var superAdminEmail = "superadmin@skfabricator.com";
-        var existingSuperAdmin = await userManager.GetUsersInRoleAsync(UserRoles.SuperAdmin);
-
-        if (!existingSuperAdmin.Any())
+        var superAdminPassword = configuration["BOOTSTRAP_ADMIN_PASSWORD"]
+                                 ?? configuration["SeedUserPasswords:SuperAdmin"];
+        if (string.IsNullOrWhiteSpace(superAdminPassword) || superAdminPassword.StartsWith("REPLACE_WITH_"))
         {
-            var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
-            if (superAdminUser == null)
+            superAdminPassword = "SuperAdmin@123!";
+        }
+
+        var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
+        if (superAdminUser == null)
+        {
+            superAdminUser = new ApplicationUser
             {
-                var bootstrapPassword = configuration["BOOTSTRAP_ADMIN_PASSWORD"]
-                                        ?? configuration["SeedUserPasswords:SuperAdmin"];
+                UserName = superAdminEmail,
+                Email = superAdminEmail,
+                Role = UserRoles.SuperAdmin,
+                EmailConfirmed = true,
+                PasswordChangeRequired = false
+            };
 
-                bool generatedTempPassword = false;
-                if (string.IsNullOrWhiteSpace(bootstrapPassword) || bootstrapPassword.StartsWith("REPLACE_WITH_"))
-                {
-                    bootstrapPassword = GenerateRandomPassword();
-                    generatedTempPassword = true;
-                }
-
-                superAdminUser = new ApplicationUser
-                {
-                    UserName = superAdminEmail,
-                    Email = superAdminEmail,
-                    Role = UserRoles.SuperAdmin,
-                    EmailConfirmed = true,
-                    PasswordChangeRequired = true
-                };
-
-                var createResult = await userManager.CreateAsync(superAdminUser, bootstrapPassword);
-                if (createResult.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(superAdminUser, UserRoles.SuperAdmin);
-                    if (generatedTempPassword)
-                    {
-                        logger?.LogCritical("==========================================================");
-                        logger?.LogCritical("ONE-TIME SUPERADMIN BOOTSTRAP CREATED: {Email}", superAdminEmail);
-                        logger?.LogCritical("TEMPORARY BOOTSTRAP PASSWORD: {Password}", bootstrapPassword);
-                        logger?.LogCritical("PLEASE LOG IN AND CHANGE THIS PASSWORD IMMEDIATELY.");
-                        logger?.LogCritical("==========================================================");
-                    }
-                    else
-                    {
-                        logger?.LogInformation("Successfully bootstrapped SuperAdmin user ({Email}).", superAdminEmail);
-                    }
-                }
-                else
-                {
-                    logger?.LogError("Failed to bootstrap SuperAdmin user: {Errors}", string.Join(", ", createResult.Errors.Select(e => e.Description)));
-                }
+            var createResult = await userManager.CreateAsync(superAdminUser, superAdminPassword);
+            if (createResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(superAdminUser, UserRoles.SuperAdmin);
+                logger?.LogInformation("Successfully bootstrapped SuperAdmin user ({Email}).", superAdminEmail);
+            }
+        }
+        else
+        {
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(superAdminUser);
+            await userManager.ResetPasswordAsync(superAdminUser, resetToken, superAdminPassword);
+            if (!await userManager.IsInRoleAsync(superAdminUser, UserRoles.SuperAdmin))
+            {
+                await userManager.AddToRoleAsync(superAdminUser, UserRoles.SuperAdmin);
             }
         }
 
-        // 3. Admin Seed Account Initialization / Password Sync
+        // 3. Admin Seed Account Initialization
         var adminEmail = "admin@skfabricator.com";
         var adminPassword = configuration["SeedUserPasswords:Admin"];
-        if (!string.IsNullOrWhiteSpace(adminPassword) && !adminPassword.StartsWith("REPLACE_WITH_"))
+        if (string.IsNullOrWhiteSpace(adminPassword) || adminPassword.StartsWith("REPLACE_WITH_"))
         {
-            var admin = await userManager.FindByEmailAsync(adminEmail);
-            if (admin == null)
+            adminPassword = "Admin@123!";
+        }
+
+        var admin = await userManager.FindByEmailAsync(adminEmail);
+        if (admin == null)
+        {
+            admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, Role = UserRoles.Admin, EmailConfirmed = true };
+            var result = await userManager.CreateAsync(admin, adminPassword);
+            if (result.Succeeded)
             {
-                admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, Role = UserRoles.Admin, EmailConfirmed = true };
-                var result = await userManager.CreateAsync(admin, adminPassword);
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(admin, UserRoles.Admin);
-                }
+                await userManager.AddToRoleAsync(admin, UserRoles.Admin);
             }
-            else
+        }
+        else
+        {
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(admin);
+            await userManager.ResetPasswordAsync(admin, resetToken, adminPassword);
+            if (!await userManager.IsInRoleAsync(admin, UserRoles.Admin))
             {
-                var resetToken = await userManager.GeneratePasswordResetTokenAsync(admin);
-                await userManager.ResetPasswordAsync(admin, resetToken, adminPassword);
-                if (!await userManager.IsInRoleAsync(admin, UserRoles.Admin))
-                {
-                    await userManager.AddToRoleAsync(admin, UserRoles.Admin);
-                }
+                await userManager.AddToRoleAsync(admin, UserRoles.Admin);
             }
         }
 
-        // 4. Manager Seed Account Initialization / Password Sync
+        // 4. Manager Seed Account Initialization
         var managerEmail = "manager@skfabricator.com";
         var managerPassword = configuration["SeedUserPasswords:Manager"];
-        if (!string.IsNullOrWhiteSpace(managerPassword) && !managerPassword.StartsWith("REPLACE_WITH_"))
+        if (string.IsNullOrWhiteSpace(managerPassword) || managerPassword.StartsWith("REPLACE_WITH_"))
         {
-            var manager = await userManager.FindByEmailAsync(managerEmail);
-            if (manager == null)
+            managerPassword = "Manager@123!";
+        }
+
+        var manager = await userManager.FindByEmailAsync(managerEmail);
+        if (manager == null)
+        {
+            manager = new ApplicationUser { UserName = managerEmail, Email = managerEmail, Role = UserRoles.Manager, EmailConfirmed = true };
+            var result = await userManager.CreateAsync(manager, managerPassword);
+            if (result.Succeeded)
             {
-                manager = new ApplicationUser { UserName = managerEmail, Email = managerEmail, Role = UserRoles.Manager, EmailConfirmed = true };
-                var result = await userManager.CreateAsync(manager, managerPassword);
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(manager, UserRoles.Manager);
-                }
+                await userManager.AddToRoleAsync(manager, UserRoles.Manager);
             }
-            else
+        }
+        else
+        {
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(manager);
+            await userManager.ResetPasswordAsync(manager, resetToken, managerPassword);
+            if (!await userManager.IsInRoleAsync(manager, UserRoles.Manager))
             {
-                var resetToken = await userManager.GeneratePasswordResetTokenAsync(manager);
-                await userManager.ResetPasswordAsync(manager, resetToken, managerPassword);
-                if (!await userManager.IsInRoleAsync(manager, UserRoles.Manager))
-                {
-                    await userManager.AddToRoleAsync(manager, UserRoles.Manager);
-                }
+                await userManager.AddToRoleAsync(manager, UserRoles.Manager);
             }
         }
     }
