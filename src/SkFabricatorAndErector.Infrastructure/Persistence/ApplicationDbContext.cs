@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SkFabricatorAndErector.Domain.Entities;
@@ -15,4 +16,19 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<HomeSlider> HomeSliders { get; set; }
     public DbSet<ApiClient> ApiClients { get; set; }
     public DbSet<OtpCode> OtpCodes { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        builder.Entity<IdentityRoleClaim<string>>(entity =>
+        {
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn();
+        });
+
+        builder.Entity<IdentityUserClaim<string>>(entity =>
+        {
+            entity.Property(e => e.Id).UseIdentityByDefaultColumn();
+        });
+    }
 }

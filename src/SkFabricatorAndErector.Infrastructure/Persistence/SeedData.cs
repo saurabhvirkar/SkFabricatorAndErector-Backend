@@ -36,7 +36,14 @@ public static class SeedData
             {
                 if (!existingClaimValues.Contains(permission))
                 {
-                    await roleManager.AddClaimAsync(role, new Claim(Permissions.ClaimType, permission));
+                    try
+                    {
+                        await roleManager.AddClaimAsync(role, new Claim(Permissions.ClaimType, permission));
+                    }
+                    catch (Exception claimEx)
+                    {
+                        logger?.LogWarning("Notice: Unable to seed claim '{Permission}' for role '{Role}': {Message}", permission, roleName, claimEx.Message);
+                    }
                 }
             }
         }
