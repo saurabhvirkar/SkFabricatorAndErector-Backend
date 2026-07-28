@@ -190,25 +190,35 @@ public static class SeedData
     {
         try
         {
+            var normalizedEmail = email.ToUpperInvariant();
             var user = await userManager.FindByEmailAsync(email) 
                        ?? await userManager.FindByNameAsync(email)
-                       ?? userManager.Users.FirstOrDefault(u => u.Email != null && u.Email.ToLower() == email.ToLower());
+                       ?? await userManager.FindByEmailAsync(normalizedEmail)
+                       ?? userManager.Users.FirstOrDefault(u => u.Email != null && (u.Email.ToLower() == email.ToLower() || u.UserName.ToLower() == email.ToLower()));
+
+            var passwordHasher = new PasswordHasher<ApplicationUser>();
 
             if (user == null)
             {
                 user = new ApplicationUser
                 {
+                    Id = Guid.NewGuid().ToString(),
                     UserName = email,
                     Email = email,
+                    NormalizedUserName = normalizedEmail,
+                    NormalizedEmail = normalizedEmail,
                     Role = role,
                     EmailConfirmed = true,
                     LockoutEnabled = false,
                     LockoutEnd = null,
                     AccessFailedCount = 0,
-                    PasswordChangeRequired = false
+                    PasswordChangeRequired = false,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    ConcurrencyStamp = Guid.NewGuid().ToString()
                 };
 
-                var createRes = await userManager.CreateAsync(user, password);
+                user.PasswordHash = passwordHasher.HashPassword(user, password);
+                var createRes = await userManager.CreateAsync(user);
                 if (!createRes.Succeeded)
                 {
                     logger?.LogWarning("CreateAsync failed for {Email}: {Errors}", email, string.Join(", ", createRes.Errors.Select(e => e.Description)));
@@ -216,25 +226,23 @@ public static class SeedData
             }
             else
             {
+                user.UserName = email;
+                user.Email = email;
+                user.NormalizedEmail = normalizedEmail;
+                user.NormalizedUserName = normalizedEmail;
                 user.EmailConfirmed = true;
                 user.LockoutEnabled = false;
                 user.LockoutEnd = null;
                 user.AccessFailedCount = 0;
                 user.Role = role;
                 user.PasswordChangeRequired = false;
-                await userManager.UpdateAsync(user);
+                user.SecurityStamp = Guid.NewGuid().ToString();
 
-                if (await userManager.HasPasswordAsync(user))
+                user.PasswordHash = passwordHasher.HashPassword(user, password);
+                var updateRes = await userManager.UpdateAsync(user);
+                if (!updateRes.Succeeded)
                 {
-                    await userManager.RemovePasswordAsync(user);
-                }
-
-                var addRes = await userManager.AddPasswordAsync(user, password);
-                if (!addRes.Succeeded)
-                {
-                    logger?.LogWarning("AddPasswordAsync failed for {Email}: {Errors}. Attempting password reset fallback.", email, string.Join(", ", addRes.Errors.Select(e => e.Description)));
-                    var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
-                    await userManager.ResetPasswordAsync(user, resetToken, password);
+                    logger?.LogWarning("UpdateAsync failed for {Email}: {Errors}", email, string.Join(", ", updateRes.Errors.Select(e => e.Description)));
                 }
             }
 
@@ -243,7 +251,7 @@ public static class SeedData
                 await userManager.AddToRoleAsync(user, role);
             }
 
-            logger?.LogInformation("Successfully verified and initialized seed user: {Email}", email);
+            logger?.LogInformation("Successfully verified and seeded user: {Email}", email);
         }
         catch (Exception ex)
         {
