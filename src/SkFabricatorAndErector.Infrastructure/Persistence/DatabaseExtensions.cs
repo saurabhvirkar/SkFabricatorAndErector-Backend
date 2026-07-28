@@ -20,9 +20,13 @@ public static class DatabaseExtensions
         {
             options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 
-            if (provider == "postgres" || provider == "postgresql")
+            var rawConnStr = configuration.GetConnectionString("DefaultConnection") ?? "";
+            var isPostgres = provider == "postgres" || provider == "postgresql" || 
+                             rawConnStr.StartsWith("postgres", StringComparison.OrdinalIgnoreCase) || 
+                             rawConnStr.Contains("neon.tech", StringComparison.OrdinalIgnoreCase);
+
+            if (isPostgres)
             {
-                var rawConnStr = configuration.GetConnectionString("DefaultConnection") ?? "";
                 var formattedConnStr = ConvertPostgresConnectionString(rawConnStr);
                 options.UseNpgsql(formattedConnStr);
             }
