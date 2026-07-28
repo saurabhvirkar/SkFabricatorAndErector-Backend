@@ -203,37 +203,38 @@ public static class SeedData
                     Role = role,
                     EmailConfirmed = true,
                     LockoutEnabled = false,
-                    NormalizedEmail = email.ToUpperInvariant(),
-                    NormalizedUserName = email.ToUpperInvariant(),
-                    SecurityStamp = Guid.NewGuid().ToString(),
+                    LockoutEnd = null,
+                    AccessFailedCount = 0,
                     PasswordChangeRequired = false
                 };
 
                 var createRes = await userManager.CreateAsync(user, password);
                 if (!createRes.Succeeded)
                 {
-                    logger?.LogWarning("CreateAsync failed for {Email}: {Errors}. Attempting manual fallback.", email, string.Join(", ", createRes.Errors.Select(e => e.Description)));
-                    user.PasswordHash = new PasswordHasher<ApplicationUser>().HashPassword(user, password);
-                    await userManager.CreateAsync(user);
+                    logger?.LogWarning("CreateAsync failed for {Email}: {Errors}", email, string.Join(", ", createRes.Errors.Select(e => e.Description)));
                 }
             }
             else
             {
                 user.EmailConfirmed = true;
                 user.LockoutEnabled = false;
+                user.LockoutEnd = null;
                 user.AccessFailedCount = 0;
                 user.Role = role;
-                user.NormalizedEmail = email.ToUpperInvariant();
-                user.NormalizedUserName = email.ToUpperInvariant();
                 user.PasswordChangeRequired = false;
-                user.SecurityStamp = Guid.NewGuid().ToString();
+                await userManager.UpdateAsync(user);
 
-                await userManager.RemovePasswordAsync(user);
+                if (await userManager.HasPasswordAsync(user))
+                {
+                    await userManager.RemovePasswordAsync(user);
+                }
+
                 var addRes = await userManager.AddPasswordAsync(user, password);
                 if (!addRes.Succeeded)
                 {
-                    user.PasswordHash = new PasswordHasher<ApplicationUser>().HashPassword(user, password);
-                    await userManager.UpdateAsync(user);
+                    logger?.LogWarning("AddPasswordAsync failed for {Email}: {Errors}. Attempting password reset fallback.", email, string.Join(", ", addRes.Errors.Select(e => e.Description)));
+                    var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+                    await userManager.ResetPasswordAsync(user, resetToken, password);
                 }
             }
 
