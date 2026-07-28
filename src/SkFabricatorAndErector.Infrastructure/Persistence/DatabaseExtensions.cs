@@ -89,6 +89,9 @@ public static class DatabaseExtensions
                             IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'LockoutEnabled' AND data_type = 'integer') THEN
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""LockoutEnabled"" TYPE boolean USING (""LockoutEnabled""::int::boolean);
                             END IF;
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'PasswordChangeRequired' AND data_type = 'integer') THEN
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""PasswordChangeRequired"" TYPE boolean USING (""PasswordChangeRequired""::int::boolean);
+                            END IF;
 
                             IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetRoleClaims') THEN
                                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetRoleClaims' AND column_name = 'Id' AND is_identity = 'YES') THEN
