@@ -65,40 +65,7 @@ public static class SeedData
         {
             superAdminPassword = "SuperAdmin@123!";
         }
-
-        var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
-        if (superAdminUser == null)
-        {
-            superAdminUser = new ApplicationUser
-            {
-                UserName = superAdminEmail,
-                Email = superAdminEmail,
-                Role = UserRoles.SuperAdmin,
-                EmailConfirmed = true,
-                SecurityStamp = Guid.NewGuid().ToString(),
-                PasswordChangeRequired = false
-            };
-
-            var createResult = await userManager.CreateAsync(superAdminUser, superAdminPassword);
-            if (createResult.Succeeded)
-            {
-                await userManager.AddToRoleAsync(superAdminUser, UserRoles.SuperAdmin);
-                logger?.LogInformation("Successfully bootstrapped SuperAdmin user ({Email}).", superAdminEmail);
-            }
-        }
-        else
-        {
-            superAdminUser.NormalizedEmail = superAdminEmail.ToUpperInvariant();
-            superAdminUser.NormalizedUserName = superAdminEmail.ToUpperInvariant();
-            superAdminUser.PasswordHash = passwordHasher.HashPassword(superAdminUser, superAdminPassword);
-            superAdminUser.SecurityStamp = Guid.NewGuid().ToString();
-            superAdminUser.EmailConfirmed = true;
-            await userManager.UpdateAsync(superAdminUser);
-            if (!await userManager.IsInRoleAsync(superAdminUser, UserRoles.SuperAdmin))
-            {
-                await userManager.AddToRoleAsync(superAdminUser, UserRoles.SuperAdmin);
-            }
-        }
+        await EnsureUserAsync(userManager, logger, superAdminEmail, superAdminPassword, UserRoles.SuperAdmin);
 
         // 3. Admin Seed Account Initialization
         var adminEmail = "admin@skfabricator.com";
@@ -107,30 +74,7 @@ public static class SeedData
         {
             adminPassword = "Admin@123!";
         }
-
-        var admin = await userManager.FindByEmailAsync(adminEmail);
-        if (admin == null)
-        {
-            admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, NormalizedEmail = adminEmail.ToUpperInvariant(), NormalizedUserName = adminEmail.ToUpperInvariant(), Role = UserRoles.Admin, EmailConfirmed = true, SecurityStamp = Guid.NewGuid().ToString() };
-            var result = await userManager.CreateAsync(admin, adminPassword);
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(admin, UserRoles.Admin);
-            }
-        }
-        else
-        {
-            admin.NormalizedEmail = adminEmail.ToUpperInvariant();
-            admin.NormalizedUserName = adminEmail.ToUpperInvariant();
-            admin.PasswordHash = passwordHasher.HashPassword(admin, adminPassword);
-            admin.SecurityStamp = Guid.NewGuid().ToString();
-            admin.EmailConfirmed = true;
-            await userManager.UpdateAsync(admin);
-            if (!await userManager.IsInRoleAsync(admin, UserRoles.Admin))
-            {
-                await userManager.AddToRoleAsync(admin, UserRoles.Admin);
-            }
-        }
+        await EnsureUserAsync(userManager, logger, adminEmail, adminPassword, UserRoles.Admin);
 
         // 4. Manager Seed Account Initialization
         var managerEmail = "manager@skfabricator.com";
@@ -139,30 +83,7 @@ public static class SeedData
         {
             managerPassword = "Manager@123!";
         }
-
-        var manager = await userManager.FindByEmailAsync(managerEmail);
-        if (manager == null)
-        {
-            manager = new ApplicationUser { UserName = managerEmail, Email = managerEmail, NormalizedEmail = managerEmail.ToUpperInvariant(), NormalizedUserName = managerEmail.ToUpperInvariant(), Role = UserRoles.Manager, EmailConfirmed = true, SecurityStamp = Guid.NewGuid().ToString() };
-            var result = await userManager.CreateAsync(manager, managerPassword);
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(manager, UserRoles.Manager);
-            }
-        }
-        else
-        {
-            manager.NormalizedEmail = managerEmail.ToUpperInvariant();
-            manager.NormalizedUserName = managerEmail.ToUpperInvariant();
-            manager.PasswordHash = passwordHasher.HashPassword(manager, managerPassword);
-            manager.SecurityStamp = Guid.NewGuid().ToString();
-            manager.EmailConfirmed = true;
-            await userManager.UpdateAsync(manager);
-            if (!await userManager.IsInRoleAsync(manager, UserRoles.Manager))
-            {
-                await userManager.AddToRoleAsync(manager, UserRoles.Manager);
-            }
-        }
+        await EnsureUserAsync(userManager, logger, managerEmail, managerPassword, UserRoles.Manager);
     }
 
     private static Dictionary<string, List<string>> GetRolePermissionMatrix()
@@ -258,5 +179,74 @@ public static class SeedData
         }
 
         return new string(chars.OrderBy(_ => bytes[0]).ToArray());
+    }
+
+    private static async Task EnsureUserAsync(
+        UserManager<ApplicationUser> userManager,
+        ILogger? logger,
+        string email,
+        string password,
+        string role)
+    {
+        try
+        {
+            var user = await userManager.FindByEmailAsync(email) 
+                       ?? await userManager.FindByNameAsync(email)
+                       ?? userManager.Users.FirstOrDefault(u => u.Email != null && u.Email.ToLower() == email.ToLower());
+
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    Role = role,
+                    EmailConfirmed = true,
+                    LockoutEnabled = false,
+                    NormalizedEmail = email.ToUpperInvariant(),
+                    NormalizedUserName = email.ToUpperInvariant(),
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    PasswordChangeRequired = false
+                };
+
+                var createRes = await userManager.CreateAsync(user, password);
+                if (!createRes.Succeeded)
+                {
+                    logger?.LogWarning("CreateAsync failed for {Email}: {Errors}. Attempting manual fallback.", email, string.Join(", ", createRes.Errors.Select(e => e.Description)));
+                    user.PasswordHash = new PasswordHasher<ApplicationUser>().HashPassword(user, password);
+                    await userManager.CreateAsync(user);
+                }
+            }
+            else
+            {
+                user.EmailConfirmed = true;
+                user.LockoutEnabled = false;
+                user.AccessFailedCount = 0;
+                user.Role = role;
+                user.NormalizedEmail = email.ToUpperInvariant();
+                user.NormalizedUserName = email.ToUpperInvariant();
+                user.PasswordChangeRequired = false;
+                user.SecurityStamp = Guid.NewGuid().ToString();
+
+                await userManager.RemovePasswordAsync(user);
+                var addRes = await userManager.AddPasswordAsync(user, password);
+                if (!addRes.Succeeded)
+                {
+                    user.PasswordHash = new PasswordHasher<ApplicationUser>().HashPassword(user, password);
+                    await userManager.UpdateAsync(user);
+                }
+            }
+
+            if (!await userManager.IsInRoleAsync(user, role))
+            {
+                await userManager.AddToRoleAsync(user, role);
+            }
+
+            logger?.LogInformation("Successfully verified and initialized seed user: {Email}", email);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Failed to ensure seed user {Email}", email);
+        }
     }
 }
