@@ -25,7 +25,9 @@ public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandling
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
-        string message = "An unexpected error occurred.";
+        string message = exception.InnerException != null 
+            ? $"{exception.Message} | Inner: {exception.InnerException.Message}" 
+            : exception.Message;
 
         if (exception is NotFoundException notFoundEx)
         {
