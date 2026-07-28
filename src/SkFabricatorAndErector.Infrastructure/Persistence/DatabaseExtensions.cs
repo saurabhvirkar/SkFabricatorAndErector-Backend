@@ -54,19 +54,19 @@ public static class DatabaseExtensions
         try
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+            try
+            {
+                await context.Database.MigrateAsync();
+                logger.LogInformation("EF Core Database Migrations applied successfully.");
+            }
+            catch (Exception mEx)
+            {
+                logger.LogWarning(mEx, "MigrateAsync fallback. Executing EnsureCreatedAsync.");
+                await context.Database.EnsureCreatedAsync();
+            }
+
             if (context.Database.IsNpgsql())
             {
-                try
-                {
-                    await context.Database.MigrateAsync();
-                    logger.LogInformation("Database migrations applied successfully for PostgreSQL.");
-                }
-                catch (Exception mEx)
-                {
-                    logger.LogWarning(mEx, "MigrateAsync fallback. Executing EnsureCreatedAsync for PostgreSQL.");
-                    await context.Database.EnsureCreatedAsync();
-                }
-
                 try
                 {
                     await context.Database.ExecuteSqlRawAsync(@"
@@ -81,11 +81,6 @@ public static class DatabaseExtensions
                 {
                     logger.LogWarning(sqlEx, "Notice: Unable to execute column alter verification on AspNetUsers.");
                 }
-            }
-            else
-            {
-                await context.Database.EnsureCreatedAsync();
-                logger.LogInformation("Database created successfully for SQLite.");
             }
 
             await SeedData.InitializeAsync(serviceProvider, configuration);
