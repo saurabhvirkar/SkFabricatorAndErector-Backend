@@ -66,9 +66,11 @@ services:
 
       # Initial Seed User Passwords
       - key: SeedUserPasswords__Admin
-        value: "Admin@123"
+        value: "Admin@123!"
       - key: SeedUserPasswords__Manager
-        value: "Manager@123"
+        value: "Manager@123!"
+      - key: SeedUserPasswords__SuperAdmin
+        value: "SuperAdmin@123!"
 
       # Allowed CORS Origins
       - key: AllowedOrigins__0
