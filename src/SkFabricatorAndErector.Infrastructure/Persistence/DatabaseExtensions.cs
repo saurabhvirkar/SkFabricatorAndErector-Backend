@@ -78,16 +78,16 @@ public static class DatabaseExtensions
                         DO $$
                         BEGIN
                             IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'EmailConfirmed' AND data_type = 'integer') THEN
-                                ALTER TABLE "AspNetUsers" ALTER COLUMN "EmailConfirmed" TYPE boolean USING ("EmailConfirmed"::int::boolean);
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""EmailConfirmed"" TYPE boolean USING (""EmailConfirmed""::int::boolean);
                             END IF;
                             IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'PhoneNumberConfirmed' AND data_type = 'integer') THEN
-                                ALTER TABLE "AspNetUsers" ALTER COLUMN "PhoneNumberConfirmed" TYPE boolean USING ("PhoneNumberConfirmed"::int::boolean);
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""PhoneNumberConfirmed"" TYPE boolean USING (""PhoneNumberConfirmed""::int::boolean);
                             END IF;
                             IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'TwoFactorEnabled' AND data_type = 'integer') THEN
-                                ALTER TABLE "AspNetUsers" ALTER COLUMN "TwoFactorEnabled" TYPE boolean USING ("TwoFactorEnabled"::int::boolean);
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""TwoFactorEnabled"" TYPE boolean USING (""TwoFactorEnabled""::int::boolean);
                             END IF;
                             IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'LockoutEnabled' AND data_type = 'integer') THEN
-                                ALTER TABLE "AspNetUsers" ALTER COLUMN "LockoutEnabled" TYPE boolean USING ("LockoutEnabled"::int::boolean);
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""LockoutEnabled"" TYPE boolean USING (""LockoutEnabled""::int::boolean);
                             END IF;
 
                             IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetRoleClaims') THEN
