@@ -129,6 +129,14 @@ public static class DatabaseExtensions
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""PasswordChangeRequired"" TYPE boolean USING (CASE WHEN ""PasswordChangeRequired""::text = '1' THEN true ELSE false END);
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""PasswordChangeRequired"" SET DEFAULT false;
                             END IF;
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'RefreshTokenExpiryTime' AND data_type LIKE '%text%') THEN
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""RefreshTokenExpiryTime"" DROP DEFAULT;
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""RefreshTokenExpiryTime"" TYPE timestamp with time zone USING (CASE WHEN ""RefreshTokenExpiryTime"" IS NULL OR ""RefreshTokenExpiryTime"" = '' THEN '0001-01-01 00:00:00+00'::timestamp with time zone ELSE ""RefreshTokenExpiryTime""::timestamp with time zone END);
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""RefreshTokenExpiryTime"" SET DEFAULT '0001-01-01 00:00:00+00';
+                            END IF;
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'LockoutEnd' AND data_type LIKE '%text%') THEN
+                                ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""LockoutEnd"" TYPE timestamp with time zone USING (CASE WHEN ""LockoutEnd"" IS NULL OR ""LockoutEnd"" = '' THEN NULL ELSE ""LockoutEnd""::timestamp with time zone END);
+                            END IF;
 
                             IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'AspNetRoleClaims') THEN
                                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetRoleClaims' AND column_name = 'Id' AND is_identity = 'YES') THEN
