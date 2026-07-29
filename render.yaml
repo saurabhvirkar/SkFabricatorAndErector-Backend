@@ -64,13 +64,13 @@ services:
       - key: SmtpSettings__ToEmail
         sync: false
 
-      # Initial Seed User Passwords (Configured via Render Environment or secure runtime)
+      # Initial Seed User Passwords
       - key: SeedUserPasswords__Admin
-        sync: false
+        value: "Admin@123!"
       - key: SeedUserPasswords__Manager
-        sync: false
+        value: "Manager@123!"
       - key: SeedUserPasswords__SuperAdmin
-        sync: false
+        value: "SuperAdmin@123!"
 
       # Allowed CORS Origins
       - key: AllowedOrigins__0
