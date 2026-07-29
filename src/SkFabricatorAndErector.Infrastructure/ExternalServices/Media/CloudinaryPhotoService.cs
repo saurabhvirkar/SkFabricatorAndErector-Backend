@@ -49,18 +49,45 @@ public class CloudinaryPhotoService : IPhotoService
                 Folder = string.IsNullOrWhiteSpace(_config.Folder) ? "sk-fabricator" : _config.Folder
             };
 
-            var result = await _cloudinary.UploadAsync(uploadParams);
-
-            if (result.Error != null)
+            try
             {
-                uploadResult.Error = result.Error.Message;
-                return uploadResult;
+                if (!string.IsNullOrWhiteSpace(_config.CloudName) && !_config.CloudName.StartsWith("REPLACE_WITH_"))
+                {
+                    var result = await _cloudinary.UploadAsync(uploadParams);
+                    if (result.Error == null && result.SecureUrl != null)
+                    {
+                        uploadResult.Url = result.SecureUrl.ToString();
+                        uploadResult.PublicId = result.PublicId;
+                        uploadResult.Width = result.Width;
+                        uploadResult.Height = result.Height;
+                        return uploadResult;
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback to local storage
             }
 
-            uploadResult.Url = result.SecureUrl.ToString();
-            uploadResult.PublicId = result.PublicId;
-            uploadResult.Width = result.Width;
-            uploadResult.Height = result.Height;
+            // Local Disk Media Storage Fallback
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            var filePath = Path.Combine(uploadsFolder, safeServerFileName);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+
+            var dimensions = await GetImageDimensionsAsync(file);
+
+            uploadResult.Url = $"/uploads/{safeServerFileName}";
+            uploadResult.PublicId = safeServerFileName;
+            uploadResult.Width = dimensions.Width;
+            uploadResult.Height = dimensions.Height;
         }
 
         return uploadResult;

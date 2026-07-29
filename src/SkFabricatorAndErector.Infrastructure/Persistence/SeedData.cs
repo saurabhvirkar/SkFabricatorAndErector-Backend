@@ -81,7 +81,8 @@ public static class SeedData
                                      ?? configuration["SeedUserPasswords:SuperAdmin"];
             if (string.IsNullOrWhiteSpace(superAdminPassword) || superAdminPassword.StartsWith("REPLACE_WITH_"))
             {
-                superAdminPassword = "SuperAdmin@123!";
+                superAdminPassword = GenerateRandomPassword();
+                logger?.LogInformation("Bootstrap SuperAdmin Password generated dynamically for environment security.");
             }
             await EnsureUserAsync(serviceProvider, userManager, logger, superAdminEmail, superAdminPassword, UserRoles.SuperAdmin);
         }
@@ -97,7 +98,8 @@ public static class SeedData
             var adminPassword = configuration["SeedUserPasswords:Admin"];
             if (string.IsNullOrWhiteSpace(adminPassword) || adminPassword.StartsWith("REPLACE_WITH_"))
             {
-                adminPassword = "Admin@123!";
+                adminPassword = GenerateRandomPassword();
+                logger?.LogInformation("Bootstrap Admin Password generated dynamically for environment security.");
             }
             await EnsureUserAsync(serviceProvider, userManager, logger, adminEmail, adminPassword, UserRoles.Admin);
         }
@@ -113,7 +115,8 @@ public static class SeedData
             var managerPassword = configuration["SeedUserPasswords:Manager"];
             if (string.IsNullOrWhiteSpace(managerPassword) || managerPassword.StartsWith("REPLACE_WITH_"))
             {
-                managerPassword = "Manager@123!";
+                managerPassword = GenerateRandomPassword();
+                logger?.LogInformation("Bootstrap Manager Password generated dynamically for environment security.");
             }
             await EnsureUserAsync(serviceProvider, userManager, logger, managerEmail, managerPassword, UserRoles.Manager);
         }

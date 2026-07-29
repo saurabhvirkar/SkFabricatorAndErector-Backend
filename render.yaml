@@ -28,7 +28,7 @@ services:
       - key: DatabaseProvider
         value: PostgreSQL
       - key: ConnectionStrings__DefaultConnection
-        value: "postgresql://neondb_owner:npg_B0sVglPD3JqI@ep-crimson-sea-azc9xh4g-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+        value: "postgresql://neondb_owner:npg_B0sVglPD3JqI@ep-crimson-sea-azc9xh4g-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
       # JWT Authentication Configuration
       - key: Jwt__Issuer
@@ -64,13 +64,13 @@ services:
       - key: SmtpSettings__ToEmail
         sync: false
 
-      # Initial Seed User Passwords
+      # Initial Seed User Passwords (Configured via Render Environment or secure runtime)
       - key: SeedUserPasswords__Admin
-        value: "Admin@123!"
+        sync: false
       - key: SeedUserPasswords__Manager
-        value: "Manager@123!"
+        sync: false
       - key: SeedUserPasswords__SuperAdmin
-        value: "SuperAdmin@123!"
+        sync: false
 
       # Allowed CORS Origins
       - key: AllowedOrigins__0
