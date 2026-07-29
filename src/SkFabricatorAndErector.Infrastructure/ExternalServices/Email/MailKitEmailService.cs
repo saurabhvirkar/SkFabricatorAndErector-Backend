@@ -85,15 +85,25 @@ Submitted At: {inquiry.SubmittedAt:yyyy-MM-dd HH:mm:ss}"
         _logger.LogInformation("OTP code sent to {Email} for {Purpose}.", toEmail, purpose);
     }
 
-    private static async Task SendEmailInternalAsync(MimeMessage message, string smtpServer, string smtpPort, string? username, string? password)
+    private async Task SendEmailInternalAsync(MimeMessage message, string smtpServer, string smtpPort, string? username, string? password)
     {
-        using var client = new SmtpClient();
-        await client.ConnectAsync(smtpServer, int.Parse(smtpPort), MailKit.Security.SecureSocketOptions.StartTls);
-        if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password) && !username.Contains("REPLACE_WITH"))
+        try
         {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || username.StartsWith("REPLACE_WITH_") || password.StartsWith("REPLACE_WITH_"))
+            {
+                _logger.LogWarning("SMTP credentials are unconfigured or placeholder; skipping email dispatch.");
+                return;
+            }
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(smtpServer, int.Parse(smtpPort), MailKit.Security.SecureSocketOptions.StartTls);
             await client.AuthenticateAsync(username, password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
         }
-        await client.SendAsync(message);
-        await client.DisconnectAsync(true);
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "SMTP Email delivery failed silently so user operation can proceed.");
+        }
     }
 }
