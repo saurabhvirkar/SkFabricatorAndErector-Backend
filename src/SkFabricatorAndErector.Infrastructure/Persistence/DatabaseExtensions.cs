@@ -104,6 +104,7 @@ public static class DatabaseExtensions
 
                         DO $$
                         BEGIN
+                            -- AspNetUsers table boolean columns
                             IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'EmailConfirmed' AND data_type = 'integer') THEN
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""EmailConfirmed"" DROP DEFAULT;
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""EmailConfirmed"" TYPE boolean USING (CASE WHEN ""EmailConfirmed""::text = '1' THEN true ELSE false END);
@@ -129,6 +130,53 @@ public static class DatabaseExtensions
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""PasswordChangeRequired"" TYPE boolean USING (CASE WHEN ""PasswordChangeRequired""::text = '1' THEN true ELSE false END);
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""PasswordChangeRequired"" SET DEFAULT false;
                             END IF;
+
+                            -- Photos table boolean columns
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Photos' AND column_name = 'IsAboutSlider' AND data_type = 'integer') THEN
+                                ALTER TABLE ""Photos"" ALTER COLUMN ""IsAboutSlider"" DROP DEFAULT;
+                                ALTER TABLE ""Photos"" ALTER COLUMN ""IsAboutSlider"" TYPE boolean USING (CASE WHEN ""IsAboutSlider""::text = '1' THEN true ELSE false END);
+                                ALTER TABLE ""Photos"" ALTER COLUMN ""IsAboutSlider"" SET DEFAULT false;
+                            END IF;
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Photos' AND column_name = 'IsMain' AND data_type = 'integer') THEN
+                                ALTER TABLE ""Photos"" ALTER COLUMN ""IsMain"" DROP DEFAULT;
+                                ALTER TABLE ""Photos"" ALTER COLUMN ""IsMain"" TYPE boolean USING (CASE WHEN ""IsMain""::text = '1' THEN true ELSE false END);
+                                ALTER TABLE ""Photos"" ALTER COLUMN ""IsMain"" SET DEFAULT false;
+                            END IF;
+
+                            -- Projects table boolean columns
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Projects' AND column_name = 'IsFeatured' AND data_type = 'integer') THEN
+                                ALTER TABLE ""Projects"" ALTER COLUMN ""IsFeatured"" DROP DEFAULT;
+                                ALTER TABLE ""Projects"" ALTER COLUMN ""IsFeatured"" TYPE boolean USING (CASE WHEN ""IsFeatured""::text = '1' THEN true ELSE false END);
+                                ALTER TABLE ""Projects"" ALTER COLUMN ""IsFeatured"" SET DEFAULT false;
+                            END IF;
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'Projects' AND column_name = 'IsCompleted' AND data_type = 'integer') THEN
+                                ALTER TABLE ""Projects"" ALTER COLUMN ""IsCompleted"" DROP DEFAULT;
+                                ALTER TABLE ""Projects"" ALTER COLUMN ""IsCompleted"" TYPE boolean USING (CASE WHEN ""IsCompleted""::text = '1' THEN true ELSE false END);
+                                ALTER TABLE ""Projects"" ALTER COLUMN ""IsCompleted"" SET DEFAULT false;
+                            END IF;
+
+                            -- OurServices table boolean columns
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'OurServices' AND column_name = 'IsActive' AND data_type = 'integer') THEN
+                                ALTER TABLE ""OurServices"" ALTER COLUMN ""IsActive"" DROP DEFAULT;
+                                ALTER TABLE ""OurServices"" ALTER COLUMN ""IsActive"" TYPE boolean USING (CASE WHEN ""IsActive""::text = '1' THEN true ELSE false END);
+                                ALTER TABLE ""OurServices"" ALTER COLUMN ""IsActive"" SET DEFAULT true;
+                            END IF;
+
+                            -- TeamMembers table boolean columns
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'TeamMembers' AND column_name = 'IsActive' AND data_type = 'integer') THEN
+                                ALTER TABLE ""TeamMembers"" ALTER COLUMN ""IsActive"" DROP DEFAULT;
+                                ALTER TABLE ""TeamMembers"" ALTER COLUMN ""IsActive"" TYPE boolean USING (CASE WHEN ""IsActive""::text = '1' THEN true ELSE false END);
+                                ALTER TABLE ""TeamMembers"" ALTER COLUMN ""IsActive"" SET DEFAULT true;
+                            END IF;
+
+                            -- HomeSliders table boolean columns
+                            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'HomeSliders' AND column_name = 'IsActive' AND data_type = 'integer') THEN
+                                ALTER TABLE ""HomeSliders"" ALTER COLUMN ""IsActive"" DROP DEFAULT;
+                                ALTER TABLE ""HomeSliders"" ALTER COLUMN ""IsActive"" TYPE boolean USING (CASE WHEN ""IsActive""::text = '1' THEN true ELSE false END);
+                                ALTER TABLE ""HomeSliders"" ALTER COLUMN ""IsActive"" SET DEFAULT true;
+                            END IF;
+
+                            -- AspNetUsers DateTime text columns
                             IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'AspNetUsers' AND column_name = 'RefreshTokenExpiryTime' AND data_type LIKE '%text%') THEN
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""RefreshTokenExpiryTime"" DROP DEFAULT;
                                 ALTER TABLE ""AspNetUsers"" ALTER COLUMN ""RefreshTokenExpiryTime"" TYPE timestamp with time zone USING (CASE WHEN ""RefreshTokenExpiryTime"" IS NULL OR ""RefreshTokenExpiryTime"" = '' THEN '0001-01-01 00:00:00+00'::timestamp with time zone ELSE ""RefreshTokenExpiryTime""::timestamp with time zone END);

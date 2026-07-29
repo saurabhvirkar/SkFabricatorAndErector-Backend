@@ -21,14 +21,14 @@ public class PhotoController(IPhotoRepository photoRepository, IPhotoService pho
     [HttpGet]
     public async Task<IActionResult> GetPhotos()
     {
-        var photos = await _photoRepository.FindAsync(p => !p.IsAboutSlider);
+        var photos = await _photoRepository.FindAsync(p => p.IsAboutSlider == false);
         return Ok(photos.Select(MapToResponse));
     }
 
     [HttpGet("about-slider")]
     public async Task<IActionResult> GetAboutSliderPhotos()
     {
-        var photos = await _photoRepository.GetAboutSliderPhotosAsync();
+        var photos = await _photoRepository.FindAsync(p => p.IsAboutSlider == true);
         return Ok(photos.Select(MapToResponse));
     }
 
