@@ -70,6 +70,7 @@ public static class DependencyInjection
         services.AddScoped<IOurServiceRepository, OurServiceRepository>();
         services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
         services.AddScoped<IClientDetailsRepository, ClientDetailsRepository>();
+        services.AddScoped<IPageImageSlotRepository, PageImageSlotRepository>();
 
         services.AddScoped<IPhotoService, CloudinaryPhotoService>();
         services.AddTransient<IEmailService, MailKitEmailService>();
