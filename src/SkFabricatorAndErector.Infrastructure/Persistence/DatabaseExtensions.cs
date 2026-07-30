@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -114,6 +115,24 @@ public static class DatabaseExtensions
                         ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""RefreshToken"" text NULL;
                         ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""RefreshTokenExpiryTime"" timestamp with time zone NOT NULL DEFAULT '0001-01-01 00:00:00+00';
                         ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PasswordChangeRequired"" boolean NOT NULL DEFAULT false;
+
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""Slug"" text NULL;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""Subtitle"" text NULL;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""Teaser"" text NULL;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""IconName"" text NULL;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""BulletTitle"" text NULL;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""BulletsJson"" text NULL;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""PhotoPlaceholder"" text NULL;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""Featured"" boolean NOT NULL DEFAULT false;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""SortOrder"" integer NOT NULL DEFAULT 0;
+                        ALTER TABLE ""OurServices"" ADD COLUMN IF NOT EXISTS ""CloudinaryPublicId"" text NULL;
+
+                        ALTER TABLE ""ClientDetails"" ADD COLUMN IF NOT EXISTS ""Tagline"" text NULL;
+                        ALTER TABLE ""ClientDetails"" ADD COLUMN IF NOT EXISTS ""Category"" text NULL;
+
+                        ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""CategoryLabel"" text NULL;
+                        ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""Client"" text NULL;
+                        ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""PhotoPlaceholder"" text NULL;
                     ");
                     AppendLog("PostgreSQL schema columns and PageImageSlots table verified successfully.");
                 }
@@ -147,10 +166,30 @@ public static class DatabaseExtensions
                 try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE AspNetUsers ADD COLUMN RefreshToken TEXT NULL;"); } catch { }
                 try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE AspNetUsers ADD COLUMN RefreshTokenExpiryTime TEXT NOT NULL DEFAULT '0001-01-01 00:00:00';"); } catch { }
                 try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE AspNetUsers ADD COLUMN PasswordChangeRequired INTEGER NOT NULL DEFAULT 0;"); } catch { }
+
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN Slug TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN Subtitle TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN Teaser TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN IconName TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN BulletTitle TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN BulletsJson TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN PhotoPlaceholder TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN Featured INTEGER NOT NULL DEFAULT 0;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE OurServices ADD COLUMN CloudinaryPublicId TEXT NULL;"); } catch { }
+
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE ClientDetails ADD COLUMN Tagline TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE ClientDetails ADD COLUMN Category TEXT NULL;"); } catch { }
+
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE Projects ADD COLUMN CategoryLabel TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE Projects ADD COLUMN Client TEXT NULL;"); } catch { }
+                try { await context.Database.ExecuteSqlRawAsync("ALTER TABLE Projects ADD COLUMN PhotoPlaceholder TEXT NULL;"); } catch { }
+
                 logger.LogInformation("SQLite schema columns and PageImageSlots table verified successfully.");
             }
 
             await EnsurePageImageSlotsSeededAsync(context);
+            await EnsureCatalogDataSeededAsync(context);
             await SeedData.InitializeAsync(serviceProvider, configuration);
             logger.LogInformation("Database seeded successfully.");
         }
@@ -158,6 +197,191 @@ public static class DatabaseExtensions
         {
             logger.LogError(ex, "An error occurred while migrating or seeding the DB.");
         }
+    }
+
+    private static async Task EnsureCatalogDataSeededAsync(ApplicationDbContext context)
+    {
+        try
+        {
+            // 1. Seed OurServices if empty
+            if (!await context.OurServices.AnyAsync())
+            {
+                context.OurServices.AddRange(
+                    new OurService
+                    {
+                        Name = "Mechanical & Piping Fabrication",
+                        Slug = "mechanical-and-piping",
+                        Subtitle = "High-Precision Process & Industrial Piping Systems",
+                        Teaser = "Renowned service provider catering to Automotive, Pharma, Dairy, Chemical, and Power industries.",
+                        Description = "Industrial Piping is the heart of SK's business. Ever since our inception, we are renowned as a leading service provider of Piping Fabrication. These fabrication services cater to the needs of various AUTOMOTIVE, PHARMA, DAIRY AND FOOD, CHEMICAL, AND POWER INDUSTRIES. Due to our rich experience, we are capable of imparting these services for piping of any size and any type.",
+                        IconName = "valve",
+                        BulletTitle = "WE HAVE EXPERTISE IN",
+                        BulletsJson = JsonSerializer.Serialize(new[] {
+                            "SS Pipeline Fabrication & Erection",
+                            "Fire Pipe Line Installation",
+                            "Gas Pipe Line (PNG, LPG, Compressed Air, Nitrogen)",
+                            "Petrol and Diesel Pipe Line Systems",
+                            "Steam Line, Nitrogen Line, Chiller Line & Process Air"
+                        }),
+                        PhotoPlaceholder = "PHOTO NEEDED: Heavy Industrial Steam & Process Piping Yard",
+                        Featured = true,
+                        SortOrder = 1
+                    },
+                    new OurService
+                    {
+                        Name = "Jacketed Piping Fabrication",
+                        Slug = "jacketed-piping-fabrication",
+                        Subtitle = "Thermal Integrity Double-Walled Piping Systems",
+                        Teaser = "Precision double-walled piping designed to maintain precise material temperatures in process lines.",
+                        Description = "Jacketed piping systems are fundamentally different than single-wall piping and demand specialized expertise. Our team of engineers, technicians, welders, and machinists is experienced in designing, fabricating, and installing jacketed piping systems.",
+                        IconName = "layers",
+                        BulletTitle = "JACKETED PIPING CAPABILITIES",
+                        BulletsJson = JsonSerializer.Serialize(new[] {
+                            "Core & Jacket Temperature-Controlled Welding",
+                            "Core Pressure Testing & Radiography Inspection",
+                            "Thermal Expansion Bellows & Jumpers",
+                            "Stainless Steel & High-Alloy Jacket Fabrication"
+                        }),
+                        PhotoPlaceholder = "PHOTO NEEDED: Dual-Wall Jacketed Pipe Spool Assembly",
+                        Featured = true,
+                        SortOrder = 2
+                    },
+                    new OurService
+                    {
+                        Name = "Structure Fabrication & Erection",
+                        Slug = "structure-fabrication-and-erection",
+                        Subtitle = "Heavy Steel Infrastructure & Industrial Frameworks",
+                        Teaser = "Structural steel works for plants, pipe racks, platforms, access ladders, and industrial buildings.",
+                        Description = "We undertake Structural Steel works for all types of Plants and Industrial Buildings, including I-Beams, Angles, Channels, Flat Bars, Squares, and Rectangular tubing fabrications.",
+                        IconName = "domain",
+                        BulletTitle = "STRUCTURAL STEEL CAPABILITIES",
+                        BulletsJson = JsonSerializer.Serialize(new[] {
+                            "I-Beam, Channel, Angle & Heavy Tubular Structures",
+                            "Industrial Pipe Racks & High-Elevation Mezzanines",
+                            "Custom Access Platforms, Catwalks & Safety Ladders",
+                            "Onsite Heavy Crane Erection & Alignment"
+                        }),
+                        PhotoPlaceholder = "PHOTO NEEDED: Structural Steel Framing & High Bay Erection",
+                        Featured = true,
+                        SortOrder = 3
+                    },
+                    new OurService
+                    {
+                        Name = "Storage Tank Manufacturing",
+                        Slug = "storage-tank-manufacturing",
+                        Subtitle = "MS / SS High & Low Pressure Storage Solutions",
+                        Teaser = "High quality MS/SS storage tanks for oil, petroleum, chemical, juice, and water storage.",
+                        Description = "We are one of the leading Steel Storage Tank manufacturers and exporters offering high quality, durable, and reliable MS/SS storage tanks.",
+                        IconName = "propane_tank",
+                        BulletTitle = "STORAGE TANK RANGE",
+                        BulletsJson = JsonSerializer.Serialize(new[] {
+                            "Mild Steel & Stainless Steel Storage Tanks",
+                            "Oil, Petroleum & Hazardous Organic Chemical Tanks",
+                            "Juice & Food-Grade SS Storage Vessels",
+                            "High/Low Pressure Water Tanks & Site Installation"
+                        }),
+                        PhotoPlaceholder = "PHOTO NEEDED: Heavy Stainless Steel & Mild Steel Vertical Storage Vessels",
+                        Featured = true,
+                        SortOrder = 4
+                    },
+                    new OurService
+                    {
+                        Name = "SS Magnetic Filters",
+                        Slug = "ss-magnetic-filters",
+                        Subtitle = "Ferrous Particle Separation for High-Purity Flow Lines",
+                        Teaser = "Meticulously designed magnetic filters to eliminate iron particles in liquid and semi-liquid process lines.",
+                        Description = "Our company offers meticulously designed SS Magnetic Filters that are widely used for separating iron particles from large volume liquid or semi-liquid line flow systems.",
+                        IconName = "filter_alt",
+                        BulletTitle = "MAGNETIC FILTER FEATURES",
+                        BulletsJson = JsonSerializer.Serialize(new[] {
+                            "High-Intensity Neodymium Rare-Earth Magnetic Rods",
+                            "Sanitary Grade Stainless Steel Construction (SS304/SS316)",
+                            "Quick-Release Clamp Design for Rapid Maintenance",
+                            "Custom Flanged & Threaded Inlet/Outlet Configurations"
+                        }),
+                        PhotoPlaceholder = "PHOTO NEEDED: SS Magnetic Filter Unit with Internal Rod Housing",
+                        Featured = false,
+                        SortOrder = 5
+                    },
+                    new OurService
+                    {
+                        Name = "Plant Maintenance & Shutdown Work",
+                        Slug = "industrial-plant-maintenance",
+                        Subtitle = "Operational Up-time & Turnaround Engineering",
+                        Teaser = "Onsite repair, maintenance, and major shutdown services for rotating and reciprocating equipment.",
+                        Description = "SK Fabricator provides onsite repair and maintenance services during turnarounds or as part of routine maintenance crews.",
+                        IconName = "build_circle",
+                        BulletTitle = "MAINTENANCE SERVICES",
+                        BulletsJson = JsonSerializer.Serialize(new[] {
+                            "Major Turnaround & Scheduled Plant Shutdown Execution",
+                            "Rotating & Reciprocating Equipment Overhauling",
+                            "Onsite Precision Welding, Machining & Base Alignment",
+                            "Preventive Maintenance to Increase Mean Time Between Failures"
+                        }),
+                        PhotoPlaceholder = "PHOTO NEEDED: Onsite Technician Servicing Heavy Industrial Machinery",
+                        Featured = true,
+                        SortOrder = 6
+                    },
+                    new OurService
+                    {
+                        Name = "Industrial Insulation Works",
+                        Slug = "insulation-works",
+                        Subtitle = "Thermal Conservation & Armaflex Cold Systems",
+                        Teaser = "Steam, hot, cold, reactor, and Armaflex cold insulation wrapped around piping to eliminate energy loss.",
+                        Description = "Pipe Insulations are combinations of high-grade materials wrapped around piping to retard the flow of heat energy.",
+                        IconName = "ac_unit",
+                        BulletTitle = "PIPE INSULATION TYPES",
+                        BulletsJson = JsonSerializer.Serialize(new[] {
+                            "Steam Pipe Thermal Insulation",
+                            "Hot & Cold Line Cladding Insulation Work",
+                            "Reactor Vessel & Process Tank Insulation",
+                            "Armaflex Cold Insulation Systems"
+                        }),
+                        PhotoPlaceholder = "PHOTO NEEDED: Insulated Overhead Steam & Process Piping Network",
+                        Featured = false,
+                        SortOrder = 7
+                    }
+                );
+                await context.SaveChangesAsync();
+            }
+
+            // 2. Seed Projects if empty
+            if (!await context.Projects.AnyAsync())
+            {
+                context.Projects.AddRange(
+                    new Project { Title = "Gas Header Pipeline Assembly", Category = "piping", CategoryLabel = "Piping", Description = "Overhead flanged gas distribution piping system installed at automotive manufacturing plant.", PhotoPlaceholder = "PHOTO NEEDED: High-Pressure Yellow Gas Pipeline Run" },
+                    new Project { Title = "Water Storage System Piping", Category = "piping", CategoryLabel = "Piping", Description = "Multi-line fluid utility connection manifold connected to industrial water reserve tank.", PhotoPlaceholder = "PHOTO NEEDED: Utility Water Tank Pipe Network" },
+                    new Project { Title = "Industrial Exhaust Ducting Spool", Category = "maintenance", CategoryLabel = "Maintenance & Ducting", Description = "Heavy gauge stainless steel exhaust duct section with custom expansion joints.", PhotoPlaceholder = "PHOTO NEEDED: Heavy SS Blower & Duct Work Assembly" },
+                    new Project { Title = "Factory Ventilation System", Category = "structural", CategoryLabel = "Structural", Description = "Outdoor cyclone separator and ductwork tower installed for plant air management.", PhotoPlaceholder = "PHOTO NEEDED: Vertical Industrial Exhaust Tower" },
+                    new Project { Title = "Precision Stainless Spool Piece", Category = "piping", CategoryLabel = "Piping", Description = "High-grade SS316 flanged pipe spool with integrated instrument ports.", PhotoPlaceholder = "PHOTO NEEDED: Sanitary SS Flanged Spool Piece" },
+                    new Project { Title = "Onsite Piping Installation Crew", Category = "maintenance", CategoryLabel = "Maintenance", Description = "Skilled welding crew installing industrial process piping during plant turnaround.", PhotoPlaceholder = "PHOTO NEEDED: Welders Executing Onsite Pipe Alignment" },
+                    new Project { Title = "Exhaust Filter Cyclone Battery", Category = "filters", CategoryLabel = "Filters & Vessels", Description = "Battery of stainless steel filtration units mounted to plant exterior wall.", PhotoPlaceholder = "PHOTO NEEDED: Multi-Column Stainless Filter Battery" },
+                    new Project { Title = "Skid-Mounted Dosing Skid", Category = "piping", CategoryLabel = "Piping", Description = "Compact skid-mounted chemical dosing system with valves and magnetic flowmeters.", PhotoPlaceholder = "PHOTO NEEDED: Precision Skid-Mounted Pipe Assembly" },
+                    new Project { Title = "SS Magnetic Filter Housing", Category = "filters", CategoryLabel = "Filters & Vessels", Description = "Sanitary SS magnetic filter vessel with internal magnetic rod basket.", PhotoPlaceholder = "PHOTO NEEDED: SS Magnetic Filter Unit Component" },
+                    new Project { Title = "High-Capacity Storage Tank", Category = "tanks", CategoryLabel = "Storage Tanks", Description = "Heavy duty vertical mild steel storage vessel prior to protective insulation coating.", PhotoPlaceholder = "PHOTO NEEDED: Red Lead Primer Storage Vessel" },
+                    new Project { Title = "Plant Safety Enclosures", Category = "structural", CategoryLabel = "Structural", Description = "Custom safety barrier cages and elevated equipment protection surrounds.", PhotoPlaceholder = "PHOTO NEEDED: Yellow Safety Barrier Enclosures" },
+                    new Project { Title = "Stainless Storage Tank Battery", Category = "tanks", CategoryLabel = "Storage Tanks", Description = "Battery of 4 vertical cylindrical stainless steel chemical storage tanks.", PhotoPlaceholder = "PHOTO NEEDED: Vertical SS Chemical Storage Vessels" }
+                );
+                await context.SaveChangesAsync();
+            }
+
+            // 3. Seed ClientDetails if empty
+            if (!await context.ClientDetails.AnyAsync())
+            {
+                context.ClientDetails.AddRange(
+                    new ClientDetails { Name = "Avery Dennison", Category = "Materials Science & Packaging" },
+                    new ClientDetails { Name = "ARAI", Tagline = "Progress through Research", Category = "Automotive Testing & Research" },
+                    new ClientDetails { Name = "Royal Agro", Tagline = "Growth Strength Evolve", Category = "Agrochemicals & Process" },
+                    new ClientDetails { Name = "Globe Gas", Category = "LPG & Industrial Gas Solutions" },
+                    new ClientDetails { Name = "KS Engineers", Category = "Industrial Machinery & Plant EPC" },
+                    new ClientDetails { Name = "HORIBA", Tagline = "Explore the future", Category = "Precision Analytical Instruments" },
+                    new ClientDetails { Name = "Voltas", Tagline = "A TATA Enterprise", Category = "Engineering & Air Conditioning" },
+                    new ClientDetails { Name = "Inspired Control Systems", Category = "Automation & Process Control" }
+                );
+                await context.SaveChangesAsync();
+            }
+        }
+        catch { }
     }
 
     private static async Task EnsurePageImageSlotsSeededAsync(ApplicationDbContext context)
@@ -200,7 +424,6 @@ public static class DatabaseExtensions
                 new PageImageSlot { SlotKey = "project.proj-8", PageName = "Projects", SectionName = "Piping", Label = "Skid-Mounted Dosing Skid" },
                 new PageImageSlot { SlotKey = "project.proj-9", PageName = "Projects", SectionName = "Filters & Vessels", Label = "SS Magnetic Filter Housing" },
                 new PageImageSlot { SlotKey = "project.proj-10", PageName = "Projects", SectionName = "Storage Tanks", Label = "High-Capacity Storage Tank" },
-                new PageImageSlot { SlotKey = "project.proj-[#11]", PageName = "Projects", SectionName = "Structural", Label = "Plant Safety Enclosures" },
                 new PageImageSlot { SlotKey = "project.proj-11", PageName = "Projects", SectionName = "Structural", Label = "Plant Safety Enclosures" },
                 new PageImageSlot { SlotKey = "project.proj-12", PageName = "Projects", SectionName = "Storage Tanks", Label = "Stainless Storage Tank Battery" }
             };

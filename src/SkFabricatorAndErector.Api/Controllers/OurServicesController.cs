@@ -65,7 +65,16 @@ public class OurServicesController(IOurServiceService serviceService) : Controll
             Name = service.Name,
             Summary = service.Summary,
             Description = service.Description,
-            ImageUrl = service.ImageUrl
+            ImageUrl = service.ImageUrl,
+            Slug = service.Slug,
+            Subtitle = service.Subtitle,
+            Teaser = service.Teaser,
+            IconName = service.IconName,
+            BulletTitle = service.BulletTitle,
+            BulletsJson = service.BulletsJson,
+            PhotoPlaceholder = service.PhotoPlaceholder,
+            Featured = service.Featured,
+            SortOrder = service.SortOrder
         };
     }
 }

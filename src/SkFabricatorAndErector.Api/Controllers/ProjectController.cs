@@ -73,7 +73,10 @@ public class ProjectController(IProjectService projectService) : ControllerBase
             Description = project.Description,
             Image = project.Image,
             Category = project.Category,
-            PublicId = project.PublicId
+            PublicId = project.PublicId,
+            CategoryLabel = project.CategoryLabel,
+            Client = project.Client,
+            PhotoPlaceholder = project.PhotoPlaceholder
         };
     }
 }

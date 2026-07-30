@@ -64,7 +64,9 @@ public class ClientDetailsController(IClientDetailsService clientDetailsService)
             Id = client.Id,
             Name = client.Name,
             ImageUrl = client.ImageUrl,
-            ClientUrl = client.ClientUrl
+            ClientUrl = client.ClientUrl,
+            Tagline = client.Tagline,
+            Category = client.Category
         };
     }
 }
