@@ -29,7 +29,13 @@ public static class DatabaseExtensions
             if (isPostgres)
             {
                 var formattedConnStr = ConvertPostgresConnectionString(rawConnStr);
-                options.UseNpgsql(formattedConnStr);
+                options.UseNpgsql(formattedConnStr, npgsqlOptions =>
+                {
+                    npgsqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 3,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorCodesToAdd: null);
+                });
             }
             else
             {

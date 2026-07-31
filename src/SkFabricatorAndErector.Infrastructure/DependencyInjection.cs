@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Http.Resilience;
+using Polly;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Infrastructure.Authentication;
@@ -75,6 +77,16 @@ public static class DependencyInjection
         services.AddScoped<IPhotoService, CloudinaryPhotoService>();
         services.AddTransient<IEmailService, MailKitEmailService>();
         services.AddScoped<IOtpService, OtpService>();
+
+        // Polly v8 Resilience Pipeline for Outbound HTTP / External Services
+        services.AddHttpClient("ResilientExternalClient")
+            .AddStandardResilienceHandler(options =>
+            {
+                options.Retry.MaxRetryAttempts = 3;
+                options.Retry.Delay = TimeSpan.FromSeconds(2);
+                options.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
+                options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(30);
+            });
 
         return services;
     }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SkFabricatorAndErector.Api.Controllers;
@@ -28,8 +29,8 @@ public class InquiryControllerTests
             Message = "Looking for fabrication quote."
         };
 
-        _serviceMock.Setup(s => s.CreateInquiryAsync(It.IsAny<Inquiry>()))
-                    .ReturnsAsync((Inquiry i) => { i.Id = 10; return i; });
+        _serviceMock.Setup(s => s.CreateInquiryAsync(It.IsAny<Inquiry>(), It.IsAny<IFormFile?>()))
+                    .ReturnsAsync((Inquiry i, IFormFile? f) => { i.Id = 10; return i; });
 
         // Act
         var actionResult = await _controller.CreateInquiry(inquiry);

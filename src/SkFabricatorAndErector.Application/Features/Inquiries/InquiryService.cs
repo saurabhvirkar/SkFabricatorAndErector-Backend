@@ -12,7 +12,7 @@ public class InquiryService(IInquiryRepository inquiryRepository, IEmailService 
     private readonly IEmailService _emailService = emailService;
     private readonly ILogger<InquiryService> _logger = logger;
 
-    public async Task<Inquiry> CreateInquiryAsync(Inquiry inquiry, IFormFile? file)
+    public async Task<Inquiry> CreateInquiryAsync(Inquiry inquiry, IFormFile? file = null)
     {
         if (inquiry.SubmittedAt == default)
         {

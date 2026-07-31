@@ -16,7 +16,7 @@ public class InquiryController(IInquiryService inquiryService) : ControllerBase
     [HttpPost]
     [AllowAnonymous]
     [RequestSizeLimit(20 * 1024 * 1024)] // 20 MB
-    public async Task<IActionResult> CreateInquiry([FromForm] Inquiry inquiry, IFormFile? file)
+    public async Task<IActionResult> CreateInquiry([FromForm] Inquiry inquiry, IFormFile? file = null)
     {
         var result = await _inquiryService.CreateInquiryAsync(inquiry, file);
         return CreatedAtAction(nameof(GetInquiryById), new { id = result.Id }, result);

@@ -29,7 +29,8 @@ builder.Services.AddCorsPolicy(builder.Configuration);
 // Task 11 — Security hardening: rate limiting
 builder.Services.AddRateLimitingPolicies();
 
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>("database");
 
 var app = builder.Build();
 
