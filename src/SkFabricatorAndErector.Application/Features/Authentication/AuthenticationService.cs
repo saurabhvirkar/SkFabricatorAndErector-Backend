@@ -29,7 +29,7 @@ public class AuthenticationService(
         var user = await _userManager.FindByEmailAsync(searchEmail)
                    ?? await _userManager.FindByNameAsync(searchEmail)
                    ?? await _userManager.FindByEmailAsync(searchEmail.ToUpperInvariant())
-                   ?? _userManager.Users.FirstOrDefault(u => u.Email != null && (u.Email.ToLower() == searchEmail.ToLower() || u.UserName.ToLower() == searchEmail.ToLower()));
+                   ?? _userManager.Users.FirstOrDefault(u => (u.Email != null && u.Email.ToLower() == searchEmail.ToLower()) || (u.UserName != null && u.UserName.ToLower() == searchEmail.ToLower()));
 
         if (user == null)
         {

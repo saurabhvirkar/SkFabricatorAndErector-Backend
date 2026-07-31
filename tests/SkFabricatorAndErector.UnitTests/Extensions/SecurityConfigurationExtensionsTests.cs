@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using SkFabricatorAndErector.Application.Extensions;
-using Xunit;
 
 namespace SkFabricatorAndErector.UnitTests.Extensions;
 

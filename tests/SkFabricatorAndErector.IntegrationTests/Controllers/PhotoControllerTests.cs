@@ -6,7 +6,6 @@ using SkFabricatorAndErector.Application.Contracts.Responses.Media;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Domain.Entities;
-using Xunit;
 
 namespace SkFabricatorAndErector.IntegrationTests.Controllers;
 

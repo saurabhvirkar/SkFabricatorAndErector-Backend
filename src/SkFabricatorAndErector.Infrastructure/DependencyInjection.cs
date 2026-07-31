@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Http.Resilience;
-using Polly;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Infrastructure.Authentication;

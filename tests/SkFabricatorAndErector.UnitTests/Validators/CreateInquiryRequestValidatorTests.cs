@@ -1,6 +1,5 @@
 using SkFabricatorAndErector.Application.Contracts.Requests.Inquiries;
 using SkFabricatorAndErector.Application.Validators;
-using Xunit;
 
 namespace SkFabricatorAndErector.UnitTests.Validators;
 

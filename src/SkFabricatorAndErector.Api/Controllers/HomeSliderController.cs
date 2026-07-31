@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using SkFabricatorAndErector.Application.Contracts.Requests.Catalog;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Domain.Constants;
-using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Api.Controllers;
 

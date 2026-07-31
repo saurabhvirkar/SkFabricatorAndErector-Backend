@@ -7,7 +7,6 @@ using SkFabricatorAndErector.Application.Contracts.Requests.Auth;
 using SkFabricatorAndErector.Application.Contracts.Responses.Auth;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Domain.Entities;
-using Xunit;
 
 namespace SkFabricatorAndErector.IntegrationTests.Controllers;
 

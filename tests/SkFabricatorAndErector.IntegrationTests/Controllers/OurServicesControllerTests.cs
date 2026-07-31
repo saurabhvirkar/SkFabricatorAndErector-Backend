@@ -4,7 +4,6 @@ using SkFabricatorAndErector.Api.Controllers;
 using SkFabricatorAndErector.Application.Contracts.Responses.Catalog;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Domain.Entities;
-using Xunit;
 
 namespace SkFabricatorAndErector.IntegrationTests.Controllers;
 

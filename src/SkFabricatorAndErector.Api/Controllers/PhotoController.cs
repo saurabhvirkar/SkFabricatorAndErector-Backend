@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SkFabricatorAndErector.Application.Contracts.Requests.Catalog;
 using SkFabricatorAndErector.Application.Contracts.Responses.Media;

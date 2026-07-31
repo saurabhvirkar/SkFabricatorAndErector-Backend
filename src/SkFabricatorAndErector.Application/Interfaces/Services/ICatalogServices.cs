@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using SkFabricatorAndErector.Application.Contracts.Requests.Catalog;
 using SkFabricatorAndErector.Domain.Entities;
 

@@ -234,7 +234,7 @@ public static class SeedData
             var user = await userManager.FindByEmailAsync(email) 
                        ?? await userManager.FindByNameAsync(email)
                        ?? await userManager.FindByEmailAsync(normalizedEmail)
-                       ?? userManager.Users.FirstOrDefault(u => u.Email != null && (u.Email.ToLower() == email.ToLower() || u.UserName.ToLower() == email.ToLower()));
+                       ?? userManager.Users.FirstOrDefault(u => (u.Email != null && u.Email.ToLower() == email.ToLower()) || (u.UserName != null && u.UserName.ToLower() == email.ToLower()));
 
             if (user == null)
             {
