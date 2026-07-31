@@ -78,14 +78,35 @@ public static class DependencyInjection
         services.AddTransient<IEmailService, MailKitEmailService>();
         services.AddScoped<IOtpService, OtpService>();
 
-        // Polly v8 Resilience Pipeline for Outbound HTTP / External Services
+        // Polly v8 Full Resilience Pipeline (Wait & Retry, Exponential Backoff, Circuit Breaker, Timeout, Bulkhead Isolation, Fault Data)
         services.AddHttpClient("ResilientExternalClient")
             .AddStandardResilienceHandler(options =>
             {
+                // 1. Wait and Retry + Exponential Backoff + Jitter
                 options.Retry.MaxRetryAttempts = 3;
                 options.Retry.Delay = TimeSpan.FromSeconds(2);
                 options.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
+                options.Retry.UseJitter = true;
+                options.Retry.OnRetry = args =>
+                {
+                    Console.WriteLine($"[Polly:WaitAndRetry] Attempt {args.AttemptNumber} failed. Retrying after {args.RetryDelay.TotalMilliseconds}ms... (Fault: {args.Outcome.Exception?.Message ?? args.Outcome.Result?.StatusCode.ToString()})");
+                    return ValueTask.CompletedTask;
+                };
+
+                // 2. Circuit Breaker & BrokenCircuitException
+                options.CircuitBreaker.FailureRatio = 0.5;
+                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(10);
+                options.CircuitBreaker.MinimumThroughput = 5;
+                options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(30);
+                options.CircuitBreaker.OnOpened = args =>
+                {
+                    Console.WriteLine($"[Polly:CircuitBreaker] Circuit TRIPPED to OPEN due to elevated failure ratio!");
+                    return ValueTask.CompletedTask;
+                };
+
+                // 3. Timeout & TimeoutRejectedException
                 options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(30);
+                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(10);
             });
 
         return services;
