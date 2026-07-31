@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
     private readonly IConfiguration _config = config;
     private readonly ILogger<MailKitEmailService> _logger = logger;
 
-    public async Task SendInquiryNotificationEmailAsync(Inquiry inquiry)
+    public async Task SendInquiryNotificationEmailAsync(Inquiry inquiry, IFormFile? file)
     {
         var smtpServer = _config["SmtpSettings:Host"] ?? _config["Email:SmtpServer"];
         var smtpPort = _config["SmtpSettings:Port"] ?? _config["Email:SmtpPort"];
@@ -32,21 +33,61 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         message.To.Add(new MailboxAddress("Admin", toAddress));
         message.Subject = $"New Inquiry from {inquiry.Name}";
 
-        message.Body = new TextPart("plain")
+        var bodyBuilder = new BodyBuilder();
+        bodyBuilder.HtmlBody = $@"
+<div style=""font-family: Arial, sans-serif; line-height: 1.6; color: #333;"">
+    <div style=""max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;"">
+        <div style=""text-align: center; padding-bottom: 20px; border-bottom: 1px solid #ddd;"">
+            <h2 style=""color: #0B4C8C;"">New Inquiry Received</h2>
+        </div>
+        <div style=""padding: 20px 0;"">
+            <p>You have received a new inquiry from the website. Details are as follows:</p>
+            <table style=""width: 100%; border-collapse: collapse;"">
+                <tr style=""border-bottom: 1px solid #eee;"">
+                    <td style=""padding: 10px 0; font-weight: bold;"">Name:</td>
+                    <td style=""padding: 10px 0;"">{inquiry.Name}</td>
+                </tr>
+                <tr style=""border-bottom: 1px solid #eee;"">
+                    <td style=""padding: 10px 0; font-weight: bold;"">Email:</td>
+                    <td style=""padding: 10px 0;""><a href=""mailto:{inquiry.Email}"">{inquiry.Email}</a></td>
+                </tr>
+                <tr style=""border-bottom: 1px solid #eee;"">
+                    <td style=""padding: 10px 0; font-weight: bold;"">Phone:</td>
+                    <td style=""padding: 10px 0;"">{inquiry.Phone ?? "N/A"}</td>
+                </tr>
+                <tr style=""border-bottom: 1px solid #eee;"">
+                    <td style=""padding: 10px 0; font-weight: bold;"">Subject:</td>
+                    <td style=""padding: 10px 0;"">{inquiry.Subject ?? "N/A"}</td>
+                </tr>
+                <tr style=""border-bottom: 1px solid #eee;"">
+                    <td style=""padding: 10px 0; font-weight: bold;"">Service of Interest:</td>
+                    <td style=""padding: 10px 0;"">{inquiry.Category ?? "N/A"}</td>
+                </tr>
+                <tr style=""border-bottom: 1px solid #eee;"">
+                    <td style=""padding: 10px 0; font-weight: bold;"">Submitted At:</td>
+                    <td style=""padding: 10px 0;"">{inquiry.SubmittedAt:yyyy-MM-dd HH:mm:ss} UTC</td>
+                </tr>
+                <tr>
+                    <td style=""padding: 10px 0; font-weight: bold; vertical-align: top;"">Message:</td>
+                    <td style=""padding: 10px 0; white-space: pre-wrap;"">{inquiry.Message}</td>
+                </tr>
+            </table>
+        </div>
+        <div style=""text-align: center; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #888;"">
+            <p>This email was sent from the inquiry form on the SK Fabricator & Erector website.</p>
+        </div>
+    </div>
+</div>";
+
+        if (file is { Length: > 0 })
         {
-            Text = $@"📩 New Inquiry Received:
+            await using var memoryStream = new MemoryStream();
+            await file.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            bodyBuilder.Attachments.Add(file.FileName, memoryStream.ToArray(), ContentType.Parse(file.ContentType));
+        }
 
-Name: {inquiry.Name}
-Email: {inquiry.Email}
-Phone: {inquiry.Phone ?? "N/A"}
-Subject: {inquiry.Subject ?? "N/A"}
-Category: {inquiry.Category ?? "N/A"}
-Preferred Contact: {inquiry.PreferredContact ?? "N/A"}
-Message:
-{inquiry.Message}
-
-Submitted At: {inquiry.SubmittedAt:yyyy-MM-dd HH:mm:ss}"
-        };
+        message.Body = bodyBuilder.ToMessageBody();
 
         await SendEmailInternalAsync(message, smtpServer, smtpPort, username, password);
         _logger.LogInformation("Inquiry notification email sent for inquiry ID {InquiryId}.", inquiry.Id);

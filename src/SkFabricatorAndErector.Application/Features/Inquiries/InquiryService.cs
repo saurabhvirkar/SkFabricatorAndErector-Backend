@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
@@ -11,7 +12,7 @@ public class InquiryService(IInquiryRepository inquiryRepository, IEmailService 
     private readonly IEmailService _emailService = emailService;
     private readonly ILogger<InquiryService> _logger = logger;
 
-    public async Task<Inquiry> CreateInquiryAsync(Inquiry inquiry)
+    public async Task<Inquiry> CreateInquiryAsync(Inquiry inquiry, IFormFile? file)
     {
         if (inquiry.SubmittedAt == default)
         {
@@ -25,7 +26,7 @@ public class InquiryService(IInquiryRepository inquiryRepository, IEmailService 
         // If it fails, log the error for administrative review.
         try
         {
-            await _emailService.SendInquiryNotificationEmailAsync(inquiry);
+            await _emailService.SendInquiryNotificationEmailAsync(inquiry, file);
         }
         catch (Exception ex)
         {
