@@ -39,6 +39,16 @@ public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandling
             statusCode = HttpStatusCode.BadRequest;
             message = businessEx.Message;
         }
+        else if (exception is Polly.CircuitBreaker.BrokenCircuitException || exception.GetType().Name.Contains("BrokenCircuitException"))
+        {
+            statusCode = HttpStatusCode.ServiceUnavailable;
+            message = "External downstream service is temporarily unavailable due to broken circuit. Please try again shortly.";
+        }
+        else if (exception is Polly.Timeout.TimeoutRejectedException || exception.GetType().Name.Contains("TimeoutRejectedException"))
+        {
+            statusCode = HttpStatusCode.GatewayTimeout;
+            message = "The operation timed out while communicating with downstream dependency.";
+        }
 
         var response = new ApiResponse(statusCode, message, null);
         context.Response.ContentType = "application/json";

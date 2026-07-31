@@ -37,7 +37,8 @@ var app = builder.Build();
 // --- Database Initialization ---
 await app.UseDatabaseInitialization(app.Services, builder.Configuration);
 
-// --- Security Headers (before all other middleware) ---
+// --- Correlation ID & Security Headers ---
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // Explicitly handle OPTIONS requests for CORS preflight
