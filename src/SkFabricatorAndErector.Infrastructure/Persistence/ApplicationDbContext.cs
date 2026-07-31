@@ -32,6 +32,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.Id).UseIdentityByDefaultColumn();
         });
 
+        builder.Entity<ClientDetails>(entity =>
+        {
+            entity.Property(e => e.ImageUrl).IsRequired(false).HasDefaultValue("");
+        });
+
         builder.Entity<PageImageSlot>(entity =>
         {
             entity.HasIndex(e => e.SlotKey).IsUnique();

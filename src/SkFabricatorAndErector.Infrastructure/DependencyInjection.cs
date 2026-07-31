@@ -93,7 +93,7 @@ public static class DependencyInjection
 
                 // 2. Circuit Breaker & BrokenCircuitException
                 options.CircuitBreaker.FailureRatio = 0.5;
-                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(10);
+                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
                 options.CircuitBreaker.MinimumThroughput = 5;
                 options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(30);
                 options.CircuitBreaker.OnOpened = args =>

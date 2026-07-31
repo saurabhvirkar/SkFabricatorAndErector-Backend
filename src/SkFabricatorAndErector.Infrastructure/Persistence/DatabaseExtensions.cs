@@ -138,8 +138,12 @@ public static class DatabaseExtensions
                         ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""CategoryLabel"" text NULL;
                         ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""Client"" text NULL;
                         ALTER TABLE ""Projects"" ADD COLUMN IF NOT EXISTS ""PhotoPlaceholder"" text NULL;
+
+                        ALTER TABLE ""ClientDetails"" ALTER COLUMN ""ImageUrl"" DROP NOT NULL;
+                        ALTER TABLE ""ClientDetails"" ALTER COLUMN ""ImageUrl"" SET DEFAULT '';
+                        UPDATE ""ClientDetails"" SET ""ImageUrl"" = '' WHERE ""ImageUrl"" IS NULL;
                     ");
-                    AppendLog("PostgreSQL schema columns and PageImageSlots table verified successfully.");
+                    AppendLog("PostgreSQL schema columns, ClientDetails constraints, and PageImageSlots table verified successfully.");
                 }
                 catch (Exception sqlEx)
                 {
