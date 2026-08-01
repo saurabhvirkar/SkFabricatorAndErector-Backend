@@ -13,18 +13,31 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
     private readonly IConfiguration _config = config;
     private readonly ILogger<MailKitEmailService> _logger = logger;
 
+    private string? GetConfigValue(params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            var val = _config[key];
+            if (!string.IsNullOrWhiteSpace(val) && !val.Contains("REPLACE_WITH", StringComparison.OrdinalIgnoreCase))
+            {
+                return val;
+            }
+        }
+        return null;
+    }
+
     public async Task SendInquiryNotificationEmailAsync(Inquiry inquiry, IFormFile? file)
     {
-        var smtpServer = _config["SmtpSettings:Host"] ?? _config["Email:SmtpServer"];
-        var smtpPort = _config["SmtpSettings:Port"] ?? _config["Email:SmtpPort"];
-        var username = _config["SmtpSettings:Username"] ?? _config["Email:Username"];
-        var password = _config["SmtpSettings:Password"] ?? _config["Email:Password"];
-        var fromAddress = _config["SmtpSettings:FromEmail"] ?? _config["Email:From"] ?? username ?? "no-reply@skfabricator.com";
-        var toAddress = _config["SmtpSettings:ToEmail"] ?? _config["Email:To"] ?? "admin@skfabricator.com";
+        var smtpServer = GetConfigValue("SmtpSettings:Host", "Email:SmtpServer");
+        var smtpPort = GetConfigValue("SmtpSettings:Port", "Email:SmtpPort");
+        var username = GetConfigValue("SmtpSettings:Username", "Email:Username");
+        var password = GetConfigValue("SmtpSettings:Password", "Email:Password");
+        var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "no-reply@skfabricator.com";
+        var toAddress = GetConfigValue("SmtpSettings:ToEmail", "Email:To") ?? "ssvirkar04@gmail.com";
 
-        if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPort) || smtpServer.Contains("REPLACE_WITH"))
+        if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPort))
         {
-            _logger.LogWarning("SMTP settings not configured (Host/Port missing or placeholder); skipping inquiry notification email for inquiry ID {InquiryId}.", inquiry.Id);
+            _logger.LogWarning("SMTP settings unconfigured; skipping inquiry notification email for inquiry ID {InquiryId}.", inquiry.Id);
             return;
         }
 
@@ -95,13 +108,13 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 
     public async Task SendOtpCodeAsync(string toEmail, string code, string purpose)
     {
-        var smtpServer = _config["SmtpSettings:Host"] ?? _config["Email:SmtpServer"];
-        var smtpPort = _config["SmtpSettings:Port"] ?? _config["Email:SmtpPort"];
-        var username = _config["SmtpSettings:Username"] ?? _config["Email:Username"];
-        var password = _config["SmtpSettings:Password"] ?? _config["Email:Password"];
-        var fromAddress = _config["SmtpSettings:FromEmail"] ?? _config["Email:From"] ?? "no-reply@skfabricator.com";
+        var smtpServer = GetConfigValue("SmtpSettings:Host", "Email:SmtpServer");
+        var smtpPort = GetConfigValue("SmtpSettings:Port", "Email:SmtpPort");
+        var username = GetConfigValue("SmtpSettings:Username", "Email:Username");
+        var password = GetConfigValue("SmtpSettings:Password", "Email:Password");
+        var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "no-reply@skfabricator.com";
 
-        if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPort) || smtpServer.Contains("REPLACE_WITH"))
+        if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPort))
         {
             _logger.LogWarning("SMTP configuration missing. OTP code [{Code}] generated for {Email} ({Purpose}).", code, toEmail, purpose);
             return;
@@ -130,9 +143,9 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
     {
         try
         {
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || username.StartsWith("REPLACE_WITH_") || password.StartsWith("REPLACE_WITH_"))
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || username.Contains("REPLACE_WITH", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning("SMTP credentials are unconfigured or placeholder; skipping email dispatch.");
+                _logger.LogWarning("SMTP credentials missing or placeholder; skipping email dispatch.");
                 return;
             }
 
@@ -152,7 +165,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
             await client.AuthenticateAsync(username, password, cts.Token);
             await client.SendAsync(message, cts.Token);
             await client.DisconnectAsync(true, cts.Token);
-            _logger.LogInformation("Email successfully dispatched via {SmtpServer}:{Port}", smtpServer, port);
+            _logger.LogInformation("Email successfully dispatched via {SmtpServer}:{Port} to {To}", smtpServer, port, message.To.ToString());
         }
         catch (Exception ex)
         {
