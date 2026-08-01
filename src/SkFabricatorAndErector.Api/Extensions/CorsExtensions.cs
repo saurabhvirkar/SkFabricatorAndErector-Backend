@@ -12,9 +12,13 @@ public static class CorsExtensions
             options.AddDefaultPolicy(policy =>
             {
                 policy.WithOrigins(allowedOrigins)
-                      .AllowAnyHeader()
+                      .AllowAnyHeader()          // Covers X-Correlation-ID, Authorization, Content-Type, etc.
                       .AllowAnyMethod()
-                      .AllowCredentials();
+                      .AllowCredentials()
+                      .WithExposedHeaders(       // Allow Angular to read these response headers
+                          "X-Correlation-ID",
+                          "Content-Disposition"  // Needed for file downloads
+                      );
             });
         });
         return services;

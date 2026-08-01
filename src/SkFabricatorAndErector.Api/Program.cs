@@ -37,32 +37,6 @@ var app = builder.Build();
 // --- Database Initialization ---
 await app.UseDatabaseInitialization(app.Services, builder.Configuration);
 
-// --- Correlation ID & Security Headers ---
-app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseMiddleware<SecurityHeadersMiddleware>();
-
-// Explicitly handle OPTIONS requests for CORS preflight
-app.Use(async (context, next) =>
-{
-    if (context.Request.Method == "OPTIONS")
-    {
-        var origin = context.Request.Headers.Origin.ToString();
-        var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-                             ?? ["http://localhost:4200", "https://skfabricator.onrender.com"];
-
-        if (!string.IsNullOrEmpty(origin) && allowedOrigins.Contains(origin))
-        {
-            context.Response.Headers.Append("Access-Control-Allow-Origin", new[] { origin });
-            context.Response.Headers.Append("Access-Control-Allow-Headers", new[] { "Origin, X-Requested-With, Content-Type, Accept, Authorization" });
-            context.Response.Headers.Append("Access-Control-Allow-Methods", new[] { "GET, POST, PUT, DELETE, OPTIONS" });
-            context.Response.Headers.Append("Access-Control-Allow-Credentials", new[] { "true" });
-        }
-        context.Response.StatusCode = 200;
-        return;
-    }
-    await next();
-});
-
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -75,7 +49,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+
+// CORS must be first so preflight OPTIONS requests are handled before any other middleware.
+// CorsExtensions uses AllowAnyHeader() which covers X-Correlation-ID and all custom headers.
 app.UseCorsPolicy();
+
+// --- Correlation ID & Security Headers ---
+// These run AFTER CORS so they don't interfere with preflight responses.
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
 // Rate limiting must be after routing
