@@ -9,9 +9,36 @@ namespace SkFabricatorAndErector.Api.Controllers;
 [ApiController]
 [Route("api/inquiry")]
 [Route("api/inquiries")]
-public class InquiryController(IInquiryService inquiryService) : ControllerBase
+public class InquiryController(IInquiryService inquiryService, IEmailService emailService) : ControllerBase
 {
     private readonly IInquiryService _inquiryService = inquiryService;
+    private readonly IEmailService _emailService = emailService;
+
+    [HttpGet("test-email")]
+    [AllowAnonymous]
+    public async Task<IActionResult> TestEmail()
+    {
+        try
+        {
+            var dummy = new Inquiry
+            {
+                Id = 999,
+                Name = "Diagnostic Tester",
+                Email = "ssvirkar04@gmail.com",
+                Phone = "1234567890",
+                Subject = "SMTP Live Diagnostic Test",
+                Category = "General",
+                Message = "Testing live SMTP configuration on Render server.",
+                SubmittedAt = DateTime.UtcNow
+            };
+            await _emailService.SendInquiryNotificationEmailAsync(dummy, null);
+            return Ok(new { status = "Success", message = "Email dispatched successfully to ssvirkar04@gmail.com!" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { status = "Error", error = ex.Message, innerError = ex.InnerException?.Message });
+        }
+    }
 
     [HttpPost]
     [AllowAnonymous]

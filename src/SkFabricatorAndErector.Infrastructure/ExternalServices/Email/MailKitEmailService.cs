@@ -159,6 +159,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             using var client = new SmtpClient();
+            client.ServerCertificateValidationCallback = (s, c, ch, e) => true;
             client.Timeout = 15000;
 
             await client.ConnectAsync(smtpServer, port, socketOptions, cts.Token);
@@ -170,6 +171,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         catch (Exception ex)
         {
             _logger.LogError(ex, "SMTP Email delivery failed for server {SmtpServer}:{Port}.", smtpServer, smtpPort);
+            throw;
         }
     }
 }
