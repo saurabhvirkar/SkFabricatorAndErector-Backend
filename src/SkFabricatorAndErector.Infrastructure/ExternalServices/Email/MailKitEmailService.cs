@@ -166,13 +166,14 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
                 req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
                 var resp = await _httpClient.SendAsync(req);
+                var body = await resp.Content.ReadAsStringAsync();
                 if (resp.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("Successfully sent email via Resend API to {To}", toEmail);
+                    _logger.LogInformation("Successfully sent email via Resend API to {To}: {Body}", toEmail, body);
                     return true;
                 }
-                var err = await resp.Content.ReadAsStringAsync();
-                _logger.LogWarning("Resend API response status {Status}: {Err}", resp.StatusCode, err);
+                _logger.LogWarning("Resend API failed with status {Status}: {Err}", resp.StatusCode, body);
+                throw new InvalidOperationException($"Resend API status {resp.StatusCode}: {body}");
             }
 
             // 2. Check for Brevo API Key (Brevo.com / Sendinblue — 300 free emails/day over HTTPS port 443)
