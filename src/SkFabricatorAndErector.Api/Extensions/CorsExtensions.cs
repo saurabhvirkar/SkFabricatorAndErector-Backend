@@ -16,7 +16,7 @@ public static class CorsExtensions
                       .AllowAnyMethod()
                       .AllowCredentials()
                       .WithExposedHeaders(       // Allow Angular to read these response headers
-                          "X-Correlation-ID",
+                          "Correlation-Id",
                           "Content-Disposition"  // Needed for file downloads
                       );
             });

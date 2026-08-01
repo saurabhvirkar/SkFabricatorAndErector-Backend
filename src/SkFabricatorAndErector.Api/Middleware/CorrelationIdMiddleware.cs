@@ -2,7 +2,7 @@ namespace SkFabricatorAndErector.Api.Middleware;
 
 public class CorrelationIdMiddleware(RequestDelegate next)
 {
-    public const string CorrelationIdHeaderName = "X-Correlation-ID";
+    public const string CorrelationIdHeaderName = "Correlation-Id";
     private readonly RequestDelegate _next = next;
 
     public async Task InvokeAsync(HttpContext context, ILogger<CorrelationIdMiddleware> logger)
