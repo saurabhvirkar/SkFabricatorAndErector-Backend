@@ -136,15 +136,18 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
                 return;
             }
 
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             using var client = new SmtpClient();
-            await client.ConnectAsync(smtpServer, int.Parse(smtpPort), MailKit.Security.SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(username, password);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            client.Timeout = 5000;
+
+            await client.ConnectAsync(smtpServer, int.Parse(smtpPort), MailKit.Security.SecureSocketOptions.StartTls, cts.Token);
+            await client.AuthenticateAsync(username, password, cts.Token);
+            await client.SendAsync(message, cts.Token);
+            await client.DisconnectAsync(true, cts.Token);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "SMTP Email delivery failed silently so user operation can proceed.");
+            _logger.LogWarning(ex, "SMTP Email delivery timed out or failed silently so user operation can proceed.");
         }
     }
 }

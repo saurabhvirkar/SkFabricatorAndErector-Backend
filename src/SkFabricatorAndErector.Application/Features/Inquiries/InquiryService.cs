@@ -22,16 +22,18 @@ public class InquiryService(IInquiryRepository inquiryRepository, IEmailService 
         await _inquiryRepository.AddAsync(inquiry);
         await _inquiryRepository.SaveChangesAsync();
 
-        // Try to send the email, but don't let it block the user response.
-        // If it fails, log the error for administrative review.
-        try
+        // Fire email notification in background task so user HTTP response is never blocked by SMTP timeouts
+        _ = Task.Run(async () =>
         {
-            await _emailService.SendInquiryNotificationEmailAsync(inquiry, file);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send inquiry notification email for inquiry ID {InquiryId}.", inquiry.Id);
-        }
+            try
+            {
+                await _emailService.SendInquiryNotificationEmailAsync(inquiry, file);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send inquiry notification email for inquiry ID {InquiryId}.", inquiry.Id);
+            }
+        });
 
         return inquiry;
     }
