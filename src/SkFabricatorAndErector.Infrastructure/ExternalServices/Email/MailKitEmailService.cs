@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +15,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 {
     private readonly IConfiguration _config = config;
     private readonly ILogger<MailKitEmailService> _logger = logger;
+    private static readonly HttpClient _httpClient = new();
 
     private string? GetConfigValue(params string[] keys)
     {
@@ -35,13 +39,8 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "ssvirkar04@gmail.com";
         var toAddress = GetConfigValue("SmtpSettings:ToEmail", "Email:To") ?? "ssvirkar04@gmail.com";
 
-        var message = new MimeMessage();
-        message.From.Add(new MailboxAddress("SK Fabricator Site", fromAddress));
-        message.To.Add(new MailboxAddress("Admin", toAddress));
-        message.Subject = $"New Inquiry from {inquiry.Name}";
-
-        var bodyBuilder = new BodyBuilder();
-        bodyBuilder.HtmlBody = $@"
+        var subject = $"New Inquiry from {inquiry.Name}";
+        var htmlContent = $@"
 <div style=""font-family: Arial, sans-serif; line-height: 1.6; color: #333;"">
     <div style=""max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;"">
         <div style=""text-align: center; padding-bottom: 20px; border-bottom: 1px solid #ddd;"">
@@ -86,6 +85,20 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
     </div>
 </div>";
 
+        // Try HTTPS API delivery first if configured (Resend / Brevo API)
+        if (await TrySendHttpApiEmailAsync(fromAddress, toAddress, subject, htmlContent))
+        {
+            _logger.LogInformation("Inquiry notification email sent via HTTPS REST API for inquiry ID {InquiryId}.", inquiry.Id);
+            return;
+        }
+
+        // Fallback to MailKit SMTP
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress("SK Fabricator Site", fromAddress));
+        message.To.Add(new MailboxAddress("Admin", toAddress));
+        message.Subject = subject;
+
+        var bodyBuilder = new BodyBuilder { HtmlBody = htmlContent };
         if (file is { Length: > 0 })
         {
             await using var memoryStream = new MemoryStream();
@@ -97,7 +110,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         message.Body = bodyBuilder.ToMessageBody();
 
         await SendEmailInternalAsync(message, smtpServer, smtpPort, username, password);
-        _logger.LogInformation("Inquiry notification email sent for inquiry ID {InquiryId}.", inquiry.Id);
+        _logger.LogInformation("Inquiry notification email sent via SMTP for inquiry ID {InquiryId}.", inquiry.Id);
     }
 
     public async Task SendOtpCodeAsync(string toEmail, string code, string purpose)
@@ -108,23 +121,90 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         var password = GetConfigValue("SmtpSettings:Password", "Email:Password") ?? "vgog keuz eaiv ggag";
         var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "ssvirkar04@gmail.com";
 
-        var message = new MimeMessage();
-        message.From.Add(new MailboxAddress("SK Fabricator Security", fromAddress));
-        message.To.Add(new MailboxAddress(toEmail, toEmail));
-        message.Subject = $"Your Verification Code: {code}";
-
-        message.Body = new TextPart("html")
-        {
-            Text = $@"<div style='font-family: Arial, sans-serif; padding: 20px;'>
+        var subject = $"Your Verification Code: {code}";
+        var htmlContent = $@"<div style='font-family: Arial, sans-serif; padding: 20px;'>
 <h2>Verification Code</h2>
 <p>Your one-time verification code for <strong>{purpose}</strong> is:</p>
 <h1 style='font-size: 32px; letter-spacing: 5px; color: #2563eb;'>{code}</h1>
 <p>This code expires in 10 minutes. If you did not request this, please secure your account immediately.</p>
-</div>"
-        };
+</div>";
+
+        if (await TrySendHttpApiEmailAsync(fromAddress, toEmail, subject, htmlContent))
+        {
+            _logger.LogInformation("OTP code sent via HTTPS REST API to {Email} for {Purpose}.", toEmail, purpose);
+            return;
+        }
+
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress("SK Fabricator Security", fromAddress));
+        message.To.Add(new MailboxAddress(toEmail, toEmail));
+        message.Subject = subject;
+        message.Body = new TextPart("html") { Text = htmlContent };
 
         await SendEmailInternalAsync(message, smtpServer, smtpPort, username, password);
-        _logger.LogInformation("OTP code sent to {Email} for {Purpose}.", toEmail, purpose);
+        _logger.LogInformation("OTP code sent via SMTP to {Email} for {Purpose}.", toEmail, purpose);
+    }
+
+    private async Task<bool> TrySendHttpApiEmailAsync(string fromEmail, string toEmail, string subject, string htmlContent)
+    {
+        try
+        {
+            // 1. Check for Resend API Key (Resend.com — 3000 free emails/mo over HTTPS port 443)
+            var resendKey = GetConfigValue("Resend:ApiKey", "ResendApiKey", "RESEND_API_KEY");
+            if (!string.IsNullOrEmpty(resendKey))
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", resendKey);
+                var payload = new
+                {
+                    from = "SK Fabricator Inquiry <onboarding@resend.dev>",
+                    to = new[] { toEmail },
+                    subject,
+                    html = htmlContent
+                };
+                req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+                var resp = await _httpClient.SendAsync(req);
+                if (resp.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Successfully sent email via Resend API to {To}", toEmail);
+                    return true;
+                }
+                var err = await resp.Content.ReadAsStringAsync();
+                _logger.LogWarning("Resend API response status {Status}: {Err}", resp.StatusCode, err);
+            }
+
+            // 2. Check for Brevo API Key (Brevo.com / Sendinblue — 300 free emails/day over HTTPS port 443)
+            var brevoKey = GetConfigValue("Brevo:ApiKey", "BrevoApiKey", "BREVO_API_KEY");
+            if (!string.IsNullOrEmpty(brevoKey))
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+                req.Headers.Add("api-key", brevoKey);
+                var payload = new
+                {
+                    sender = new { email = fromEmail, name = "SK Fabricator & Erector" },
+                    to = new[] { new { email = toEmail } },
+                    subject,
+                    htmlContent
+                };
+                req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+                var resp = await _httpClient.SendAsync(req);
+                if (resp.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Successfully sent email via Brevo API to {To}", toEmail);
+                    return true;
+                }
+                var err = await resp.Content.ReadAsStringAsync();
+                _logger.LogWarning("Brevo API response status {Status}: {Err}", resp.StatusCode, err);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "HTTPS API email dispatch failed; falling back to SMTP...");
+        }
+
+        return false;
     }
 
     private async Task SendEmailInternalAsync(MimeMessage message, string smtpServer, string smtpPort, string? username, string? password)
@@ -137,7 +217,6 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 
         var port = int.TryParse(smtpPort, out var p) ? p : 465;
 
-        // Render blocks outbound port 587. For Gmail on cloud platforms, port 465 (SslOnConnect) is required.
         if (smtpServer.Contains("gmail", StringComparison.OrdinalIgnoreCase) && port == 587)
         {
             port = 465;
@@ -150,7 +229,6 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
             _ => MailKit.Security.SecureSocketOptions.Auto
         };
 
-        // Try primary port (e.g. 465 SslOnConnect)
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -170,7 +248,6 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
             _logger.LogWarning(ex, "Primary SMTP attempt via {SmtpServer}:{Port} failed. Attempting fallback...", smtpServer, port);
         }
 
-        // Fallback attempt: if 465 failed, try 587 (or vice versa)
         var fallbackPort = (port == 465) ? 587 : 465;
         var fallbackOptions = (fallbackPort == 465) ? MailKit.Security.SecureSocketOptions.SslOnConnect : MailKit.Security.SecureSocketOptions.StartTls;
 
