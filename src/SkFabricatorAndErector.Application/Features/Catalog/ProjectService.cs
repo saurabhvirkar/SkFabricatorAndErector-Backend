@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Hybrid;
 using SkFabricatorAndErector.Application.Contracts.Requests.Catalog;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
@@ -5,14 +6,19 @@ using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Application.Features.Catalog;
 
-public class ProjectService(IProjectRepository projectRepository, IPhotoService photoService) : IProjectService
+public class ProjectService(IProjectRepository projectRepository, IPhotoService photoService, HybridCache cache) : IProjectService
 {
     private readonly IProjectRepository _projectRepository = projectRepository;
     private readonly IPhotoService _photoService = photoService;
+    private readonly HybridCache _cache = cache;
+
+    private const string AllProjectsCacheKey = "projects:all";
 
     public async Task<IEnumerable<Project>> GetAllProjectsAsync()
     {
-        return await _projectRepository.GetAllAsync();
+        return await _cache.GetOrCreateAsync(
+            AllProjectsCacheKey,
+            async ct => (await _projectRepository.GetAllAsync()).ToList());
     }
 
     public async Task<Project?> GetProjectByIdAsync(int id)
@@ -45,6 +51,7 @@ public class ProjectService(IProjectRepository projectRepository, IPhotoService 
         }
 
         await _projectRepository.AddAsync(project);
+        await _cache.RemoveAsync(AllProjectsCacheKey);
         return project;
     }
 
@@ -73,6 +80,7 @@ public class ProjectService(IProjectRepository projectRepository, IPhotoService 
         }
 
         await _projectRepository.UpdateAsync(project);
+        await _cache.RemoveAsync(AllProjectsCacheKey);
         return project;
     }
 
@@ -87,6 +95,7 @@ public class ProjectService(IProjectRepository projectRepository, IPhotoService 
         }
 
         await _projectRepository.DeleteAsync(project);
+        await _cache.RemoveAsync(AllProjectsCacheKey);
         return true;
     }
 }

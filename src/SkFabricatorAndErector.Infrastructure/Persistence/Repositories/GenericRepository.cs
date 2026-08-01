@@ -19,13 +19,13 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     public virtual async Task<IEnumerable<T>> GetAllAsync()
     {
         _logger?.LogInformation("Getting all entities of type {EntityType}", typeof(T).Name);
-        return await _context.Set<T>().ToListAsync();
+        return await _context.Set<T>().AsNoTracking().ToListAsync();
     }
 
     public virtual async Task<T?> GetByIdAsync(int id)
     {
         _logger?.LogInformation("Getting entity of type {EntityType} with id {Id}", typeof(T).Name, id);
-        return await _context.Set<T>().FindAsync(id);
+        return await _context.Set<T>().AsNoTracking().FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id);
     }
 
     public virtual async Task AddAsync(T entity)
@@ -67,7 +67,7 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
     {
         _logger?.LogInformation("Finding entities of type {EntityType} with predicate", typeof(T).Name);
-        return await _context.Set<T>().Where(predicate).ToListAsync();
+        return await _context.Set<T>().AsNoTracking().Where(predicate).ToListAsync();
     }
 
     public virtual async Task<int> SaveChangesAsync()

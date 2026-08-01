@@ -1,18 +1,24 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Hybrid;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Application.Features.Media;
 
-public class HomeSliderService(IHomeSliderRepository sliderRepository, IPhotoService photoService) : IHomeSliderService
+public class HomeSliderService(IHomeSliderRepository sliderRepository, IPhotoService photoService, HybridCache cache) : IHomeSliderService
 {
     private readonly IHomeSliderRepository _sliderRepository = sliderRepository;
     private readonly IPhotoService _photoService = photoService;
+    private readonly HybridCache _cache = cache;
+
+    private const string AllSlidersCacheKey = "sliders:all";
 
     public async Task<IEnumerable<HomeSlider>> GetAllSlidersAsync()
     {
-        return await _sliderRepository.GetAllAsync();
+        return await _cache.GetOrCreateAsync(
+            AllSlidersCacheKey,
+            async ct => (await _sliderRepository.GetAllAsync()).ToList());
     }
 
     public async Task<HomeSlider> AddSliderAsync(string title, string description, IFormFile file)
@@ -41,6 +47,7 @@ public class HomeSliderService(IHomeSliderRepository sliderRepository, IPhotoSer
         };
 
         await _sliderRepository.AddAsync(slider);
+        await _cache.RemoveAsync(AllSlidersCacheKey);
         return slider;
     }
 
@@ -58,6 +65,7 @@ public class HomeSliderService(IHomeSliderRepository sliderRepository, IPhotoSer
         }
 
         await _sliderRepository.DeleteAsync(slider);
+        await _cache.RemoveAsync(AllSlidersCacheKey);
         return true;
     }
 }

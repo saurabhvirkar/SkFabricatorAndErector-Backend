@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Hybrid;
 using SkFabricatorAndErector.Application.Interfaces.Persistence;
 using SkFabricatorAndErector.Application.Interfaces.Services;
 using SkFabricatorAndErector.Domain.Entities;
@@ -8,15 +9,20 @@ namespace SkFabricatorAndErector.Api.Controllers;
 
 [ApiController]
 [Route("api/page-images")]
-public class PageImagesController(IPageImageSlotRepository slotRepository, IPhotoService photoService) : ControllerBase
+public class PageImagesController(IPageImageSlotRepository slotRepository, IPhotoService photoService, HybridCache cache) : ControllerBase
 {
     private readonly IPageImageSlotRepository _slotRepository = slotRepository;
     private readonly IPhotoService _photoService = photoService;
+    private readonly HybridCache _cache = cache;
+
+    private const string AllSlotsCacheKey = "page-images:all";
 
     [HttpGet]
     public async Task<IActionResult> GetAllSlots()
     {
-        var slots = await _slotRepository.GetAllSlotsAsync();
+        var slots = await _cache.GetOrCreateAsync(
+            AllSlotsCacheKey,
+            async ct => (await _slotRepository.GetAllSlotsAsync()).ToList());
         var response = slots.Select(MapToResponse);
         return Ok(response);
     }
@@ -33,7 +39,9 @@ public class PageImagesController(IPageImageSlotRepository slotRepository, IPhot
     [Authorize]
     public async Task<IActionResult> GetAdminSlotRegistry()
     {
-        var slots = await _slotRepository.GetAllSlotsAsync();
+        var slots = await _cache.GetOrCreateAsync(
+            AllSlotsCacheKey,
+            async ct => (await _slotRepository.GetAllSlotsAsync()).ToList());
         var response = slots.Select(MapToResponse);
         return Ok(response);
     }
@@ -104,6 +112,8 @@ public class PageImagesController(IPageImageSlotRepository slotRepository, IPhot
         await _slotRepository.UpdateAsync(slot);
         await _slotRepository.SaveChangesAsync();
 
+        await _cache.RemoveAsync(AllSlotsCacheKey);
+
         return Ok(MapToResponse(slot));
     }
 
@@ -125,6 +135,8 @@ public class PageImagesController(IPageImageSlotRepository slotRepository, IPhot
 
         await _slotRepository.UpdateAsync(slot);
         await _slotRepository.SaveChangesAsync();
+
+        await _cache.RemoveAsync(AllSlotsCacheKey);
 
         return Ok(MapToResponse(slot));
     }

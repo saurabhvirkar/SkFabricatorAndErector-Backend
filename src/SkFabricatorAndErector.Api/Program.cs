@@ -1,5 +1,8 @@
+using System.IO.Compression;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using SkFabricatorAndErector.Api.Extensions;
 using SkFabricatorAndErector.Api.Filters;
 using SkFabricatorAndErector.Api.Middleware;
@@ -16,6 +19,31 @@ builder.Configuration.ValidateStartupSecurity(builder.Environment);
 // --- Application Core & Infrastructure Registration ---
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
+
+// --- HybridCache Registration ---
+#pragma warning disable EXTEXP0018
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(10),
+        LocalCacheExpiration = TimeSpan.FromMinutes(10)
+    };
+    options.MaximumPayloadBytes = 1024 * 1024; // 1MB safety cap
+});
+#pragma warning restore EXTEXP0018
+
+// --- Response Compression Registration ---
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true; // Safe: public non-personalized JSON payloads only
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        ["application/json", "image/svg+xml"]);
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 
 // --- Presentation Layer Configuration ---
 builder.Services.AddControllers(options =>
@@ -48,6 +76,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseResponseCompression();
 app.UseStaticFiles();
 
 // CORS must be first so preflight OPTIONS requests are handled before any other middleware.
