@@ -11,13 +11,31 @@ public class CompanyProfilePdfController(IWebHostEnvironment env) : ControllerBa
 
     private IEnumerable<string> GetAllPossiblePdfPaths()
     {
-        var list = new List<string>
+        var filenames = new[] { "sk_company_profile.pdf", "sk-company-profile.pdf" };
+        var directories = new[]
         {
-            Path.Combine(_env.ContentRootPath, "Resources", "sk-company-profile.pdf"),
-            Path.Combine(AppContext.BaseDirectory, "Resources", "sk-company-profile.pdf"),
-            Path.Combine(Directory.GetCurrentDirectory(), "Resources", "sk-company-profile.pdf"),
-            Path.Combine(_env.ContentRootPath, "sk-company-profile.pdf")
+            Path.Combine(_env.ContentRootPath, "Resources"),
+            Path.Combine(_env.ContentRootPath, "..", "docs"),
+            Path.Combine(Directory.GetCurrentDirectory(), "docs"),
+            Path.Combine(AppContext.BaseDirectory, "docs"),
+            Path.Combine(AppContext.BaseDirectory, "Resources"),
+            Path.Combine(Directory.GetCurrentDirectory(), "Resources"),
+            _env.ContentRootPath
         };
+
+        var list = new List<string>();
+        foreach (var dir in directories)
+        {
+            try
+            {
+                var fullDir = Path.GetFullPath(dir);
+                foreach (var fn in filenames)
+                {
+                    list.Add(Path.Combine(fullDir, fn));
+                }
+            }
+            catch { }
+        }
         return list.Distinct();
     }
 
