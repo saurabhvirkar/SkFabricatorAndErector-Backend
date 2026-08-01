@@ -11,9 +11,15 @@ public class CompanyProfilePdfController(IWebHostEnvironment env) : ControllerBa
 
     private string GetPdfPath()
     {
-        var primaryPath = Path.Combine(_env.ContentRootPath, "Resources", "sk-company-profile.pdf");
-        var secondaryPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources", "sk-company-profile.pdf");
-        return System.IO.File.Exists(primaryPath) ? primaryPath : secondaryPath;
+        var paths = new[]
+        {
+            Path.Combine(_env.ContentRootPath, "Resources", "sk-company-profile.pdf"),
+            Path.Combine(AppContext.BaseDirectory, "Resources", "sk-company-profile.pdf"),
+            Path.Combine(Directory.GetCurrentDirectory(), "Resources", "sk-company-profile.pdf"),
+            Path.Combine(_env.ContentRootPath, "sk-company-profile.pdf")
+        };
+
+        return paths.FirstOrDefault(System.IO.File.Exists) ?? paths[0];
     }
 
     [HttpGet("download-pdf")]
