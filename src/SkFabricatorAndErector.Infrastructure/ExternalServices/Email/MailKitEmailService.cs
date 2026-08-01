@@ -30,6 +30,35 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         return null;
     }
 
+    private List<string> ParseRecipients(string? raw, params string[] defaultRecipients)
+    {
+        var list = new List<string>();
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            var parts = raw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var part in parts)
+            {
+                if (!part.Contains("REPLACE_WITH", StringComparison.OrdinalIgnoreCase))
+                {
+                    list.Add(part);
+                }
+            }
+        }
+
+        if (list.Count == 0)
+        {
+            foreach (var d in defaultRecipients)
+            {
+                if (!string.IsNullOrWhiteSpace(d) && !list.Contains(d, StringComparer.OrdinalIgnoreCase))
+                {
+                    list.Add(d);
+                }
+            }
+        }
+
+        return list.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     public async Task SendInquiryNotificationEmailAsync(Inquiry inquiry, IFormFile? file)
     {
         var smtpServer = GetConfigValue("SmtpSettings:Host", "Email:SmtpServer") ?? "smtp.gmail.com";
@@ -37,7 +66,9 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         var username = GetConfigValue("SmtpSettings:Username", "Email:Username") ?? "ssvirkar04@gmail.com";
         var password = GetConfigValue("SmtpSettings:Password", "Email:Password") ?? "vgog keuz eaiv ggag";
         var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "ssvirkar04@gmail.com";
-        var toAddress = GetConfigValue("SmtpSettings:ToEmail", "Email:To") ?? "ssvirkar04@gmail.com";
+
+        var rawTo = GetConfigValue("SmtpSettings:ToEmail", "Email:To");
+        var toAddresses = ParseRecipients(rawTo, "ssvirkar04@gmail.com", "kaleshripad2070@gmail.com");
 
         var subject = $"New Inquiry from {inquiry.Name}";
         var htmlContent = $@"
@@ -86,16 +117,19 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 </div>";
 
         // Try HTTPS API delivery first if configured (Resend / Brevo API)
-        if (await TrySendHttpApiEmailAsync(fromAddress, toAddress, subject, htmlContent))
+        if (await TrySendHttpApiEmailAsync(fromAddress, toAddresses, subject, htmlContent))
         {
-            _logger.LogInformation("Inquiry notification email sent via HTTPS REST API for inquiry ID {InquiryId}.", inquiry.Id);
+            _logger.LogInformation("Inquiry notification email sent via HTTPS REST API to {Recipients} for inquiry ID {InquiryId}.", string.Join(", ", toAddresses), inquiry.Id);
             return;
         }
 
         // Fallback to MailKit SMTP
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("SK Fabricator Site", fromAddress));
-        message.To.Add(new MailboxAddress("Admin", toAddress));
+        foreach (var recipient in toAddresses)
+        {
+            message.To.Add(new MailboxAddress("Admin", recipient));
+        }
         message.Subject = subject;
 
         var bodyBuilder = new BodyBuilder { HtmlBody = htmlContent };
@@ -129,7 +163,8 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 <p>This code expires in 10 minutes. If you did not request this, please secure your account immediately.</p>
 </div>";
 
-        if (await TrySendHttpApiEmailAsync(fromAddress, toEmail, subject, htmlContent))
+        var recipients = new List<string> { toEmail };
+        if (await TrySendHttpApiEmailAsync(fromAddress, recipients, subject, htmlContent))
         {
             _logger.LogInformation("OTP code sent via HTTPS REST API to {Email} for {Purpose}.", toEmail, purpose);
             return;
@@ -145,7 +180,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         _logger.LogInformation("OTP code sent via SMTP to {Email} for {Purpose}.", toEmail, purpose);
     }
 
-    private async Task<bool> TrySendHttpApiEmailAsync(string fromEmail, string toEmail, string subject, string htmlContent)
+    private async Task<bool> TrySendHttpApiEmailAsync(string fromEmail, List<string> toEmails, string subject, string htmlContent)
     {
         // 1. Check for Resend API Key (Resend.com — 3000 free emails/mo over HTTPS port 443)
         var resendKey = GetConfigValue("Resend:ApiKey", "ResendApiKey", "RESEND_API_KEY");
@@ -163,7 +198,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
                 var payload = new
                 {
                     from = fromHeader,
-                    to = new[] { toEmail },
+                    to = toEmails.ToArray(),
                     subject,
                     html = htmlContent
                 };
@@ -173,7 +208,7 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
                 var body = await resp.Content.ReadAsStringAsync();
                 if (resp.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("Successfully sent email via Resend API to {To}", toEmail);
+                    _logger.LogInformation("Successfully sent email via Resend API to {To}", string.Join(", ", toEmails));
                     return true;
                 }
 
@@ -189,27 +224,33 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
         var brevoKey = GetConfigValue("Brevo:ApiKey", "BrevoApiKey", "BREVO_API_KEY");
         if (!string.IsNullOrEmpty(brevoKey))
         {
-            using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
-            req.Headers.Add("api-key", brevoKey);
-            var payload = new
+            try
             {
-                sender = new { email = fromEmail, name = "SK Fabricator & Erector" },
-                to = new[] { new { email = toEmail } },
-                subject,
-                htmlContent
-            };
-            req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+                req.Headers.Add("api-key", brevoKey);
+                var payload = new
+                {
+                    sender = new { email = fromEmail, name = "SK Fabricator & Erector" },
+                    to = toEmails.Select(e => new { email = e }).ToArray(),
+                    subject,
+                    htmlContent
+                };
+                req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            var resp = await _httpClient.SendAsync(req);
-            var body = await resp.Content.ReadAsStringAsync();
-            if (resp.IsSuccessStatusCode)
-            {
-                _logger.LogInformation("Successfully sent email via Brevo API to {To}", toEmail);
-                return true;
+                var resp = await _httpClient.SendAsync(req);
+                var body = await resp.Content.ReadAsStringAsync();
+                if (resp.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Successfully sent email via Brevo API to {To}", string.Join(", ", toEmails));
+                    return true;
+                }
+
+                _logger.LogWarning("Brevo API returned status {Status}: {Err}", resp.StatusCode, body);
             }
-
-            _logger.LogWarning("Brevo API returned non-success status {Status}: {Err}", resp.StatusCode, body);
-            throw new InvalidOperationException($"Brevo API error (HTTP {(int)resp.StatusCode} {resp.StatusCode}): {body}");
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send email via Brevo HTTPS API.");
+            }
         }
 
         return false;
