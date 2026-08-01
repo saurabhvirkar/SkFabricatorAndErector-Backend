@@ -147,63 +147,60 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 
     private async Task<bool> TrySendHttpApiEmailAsync(string fromEmail, string toEmail, string subject, string htmlContent)
     {
-        try
+        // 1. Check for Resend API Key (Resend.com — 3000 free emails/mo over HTTPS port 443)
+        var resendKey = GetConfigValue("Resend:ApiKey", "ResendApiKey", "RESEND_API_KEY")
+            ?? Encoding.UTF8.GetString(Convert.FromBase64String("cmVfQUdTWllpRXVfR0RKU0d4VUx4S2NMMllqTHVXYnNYMzY="));
+
+        if (!string.IsNullOrEmpty(resendKey))
         {
-            // 1. Check for Resend API Key (Resend.com — 3000 free emails/mo over HTTPS port 443)
-            var resendKey = GetConfigValue("Resend:ApiKey", "ResendApiKey", "RESEND_API_KEY")
-                ?? Encoding.UTF8.GetString(Convert.FromBase64String("cmVfQUdTWllpRXVfR0RKU0d4VUx4S2NMMllqTHVXYnNYMzY="));
-            if (!string.IsNullOrEmpty(resendKey))
+            using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", resendKey);
+            var payload = new
             {
-                using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
-                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", resendKey);
-                var payload = new
-                {
-                    from = "SK Fabricator Inquiry <onboarding@resend.dev>",
-                    to = new[] { toEmail },
-                    subject,
-                    html = htmlContent
-                };
-                req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                from = "onboarding@resend.dev",
+                to = new[] { toEmail },
+                subject,
+                html = htmlContent
+            };
+            req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-                var resp = await _httpClient.SendAsync(req);
-                var body = await resp.Content.ReadAsStringAsync();
-                if (resp.IsSuccessStatusCode)
-                {
-                    _logger.LogInformation("Successfully sent email via Resend API to {To}: {Body}", toEmail, body);
-                    return true;
-                }
-                _logger.LogWarning("Resend API failed with status {Status}: {Err}", resp.StatusCode, body);
-                throw new InvalidOperationException($"Resend API status {resp.StatusCode}: {body}");
+            var resp = await _httpClient.SendAsync(req);
+            var body = await resp.Content.ReadAsStringAsync();
+            if (resp.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Successfully sent email via Resend API to {To}: {Body}", toEmail, body);
+                return true;
             }
 
-            // 2. Check for Brevo API Key (Brevo.com / Sendinblue — 300 free emails/day over HTTPS port 443)
-            var brevoKey = GetConfigValue("Brevo:ApiKey", "BrevoApiKey", "BREVO_API_KEY");
-            if (!string.IsNullOrEmpty(brevoKey))
-            {
-                using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
-                req.Headers.Add("api-key", brevoKey);
-                var payload = new
-                {
-                    sender = new { email = fromEmail, name = "SK Fabricator & Erector" },
-                    to = new[] { new { email = toEmail } },
-                    subject,
-                    htmlContent
-                };
-                req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-                var resp = await _httpClient.SendAsync(req);
-                if (resp.IsSuccessStatusCode)
-                {
-                    _logger.LogInformation("Successfully sent email via Brevo API to {To}", toEmail);
-                    return true;
-                }
-                var err = await resp.Content.ReadAsStringAsync();
-                _logger.LogWarning("Brevo API response status {Status}: {Err}", resp.StatusCode, err);
-            }
+            _logger.LogWarning("Resend API returned non-success status {Status}: {Err}", resp.StatusCode, body);
+            throw new InvalidOperationException($"Resend API error (HTTP {(int)resp.StatusCode} {resp.StatusCode}): {body}");
         }
-        catch (Exception ex)
+
+        // 2. Check for Brevo API Key (Brevo.com / Sendinblue — 300 free emails/day over HTTPS port 443)
+        var brevoKey = GetConfigValue("Brevo:ApiKey", "BrevoApiKey", "BREVO_API_KEY");
+        if (!string.IsNullOrEmpty(brevoKey))
         {
-            _logger.LogWarning(ex, "HTTPS API email dispatch failed; falling back to SMTP...");
+            using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+            req.Headers.Add("api-key", brevoKey);
+            var payload = new
+            {
+                sender = new { email = fromEmail, name = "SK Fabricator & Erector" },
+                to = new[] { new { email = toEmail } },
+                subject,
+                htmlContent
+            };
+            req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+            var resp = await _httpClient.SendAsync(req);
+            var body = await resp.Content.ReadAsStringAsync();
+            if (resp.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Successfully sent email via Brevo API to {To}", toEmail);
+                return true;
+            }
+
+            _logger.LogWarning("Brevo API returned non-success status {Status}: {Err}", resp.StatusCode, body);
+            throw new InvalidOperationException($"Brevo API error (HTTP {(int)resp.StatusCode} {resp.StatusCode}): {body}");
         }
 
         return false;
