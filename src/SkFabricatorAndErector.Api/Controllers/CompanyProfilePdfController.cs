@@ -9,21 +9,27 @@ public class CompanyProfilePdfController(IWebHostEnvironment env) : ControllerBa
 {
     private readonly IWebHostEnvironment _env = env;
 
-    private string GetPdfPath()
+    private IEnumerable<string> GetAllPossiblePdfPaths()
     {
-        var paths = new[]
+        var list = new List<string>
         {
             Path.Combine(_env.ContentRootPath, "Resources", "sk-company-profile.pdf"),
             Path.Combine(AppContext.BaseDirectory, "Resources", "sk-company-profile.pdf"),
             Path.Combine(Directory.GetCurrentDirectory(), "Resources", "sk-company-profile.pdf"),
             Path.Combine(_env.ContentRootPath, "sk-company-profile.pdf")
         };
+        return list.Distinct();
+    }
 
-        return paths.FirstOrDefault(System.IO.File.Exists) ?? paths[0];
+    private string GetPdfPath()
+    {
+        var paths = GetAllPossiblePdfPaths();
+        return paths.FirstOrDefault(System.IO.File.Exists) ?? paths.First();
     }
 
     [HttpGet("download-pdf")]
     [HttpGet("pdf")]
+    [AllowAnonymous]
     public IActionResult DownloadPdf()
     {
         var finalPath = GetPdfPath();
@@ -34,10 +40,15 @@ public class CompanyProfilePdfController(IWebHostEnvironment env) : ControllerBa
         }
 
         var fileBytes = System.IO.File.ReadAllBytes(finalPath);
+        Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0";
+        Response.Headers["Pragma"] = "no-cache";
+        Response.Headers["Expires"] = "0";
+
         return File(fileBytes, "application/pdf", "SK-Fabricator-Company-Profile.pdf");
     }
 
     [HttpGet("pdf-info")]
+    [AllowAnonymous]
     public IActionResult GetPdfInfo()
     {
         var pdfPath = GetPdfPath();
@@ -79,17 +90,29 @@ public class CompanyProfilePdfController(IWebHostEnvironment env) : ControllerBa
             return BadRequest(new { message = "Invalid file type. Only PDF (.pdf) documents are allowed." });
         }
 
-        var resourcesDir = Path.Combine(_env.ContentRootPath, "Resources");
-        if (!Directory.Exists(resourcesDir))
+        byte[] fileBytes;
+        using (var ms = new MemoryStream())
         {
-            Directory.CreateDirectory(resourcesDir);
+            await file.CopyToAsync(ms);
+            fileBytes = ms.ToArray();
         }
 
-        var targetPath = Path.Combine(resourcesDir, "sk-company-profile.pdf");
-
-        using (var stream = new FileStream(targetPath, FileMode.Create))
+        // Save to all possible target paths so all lookups reflect the new file instantly
+        foreach (var targetPath in GetAllPossiblePdfPaths())
         {
-            await file.CopyToAsync(stream);
+            try
+            {
+                var dir = Path.GetDirectoryName(targetPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                await System.IO.File.WriteAllBytesAsync(targetPath, fileBytes);
+            }
+            catch
+            {
+                // Ignore path write errors if directory is inaccessible
+            }
         }
 
         return Ok(new
@@ -105,16 +128,18 @@ public class CompanyProfilePdfController(IWebHostEnvironment env) : ControllerBa
     [Authorize]
     public IActionResult DeletePdf()
     {
-        var pdfPath = GetPdfPath();
-        if (System.IO.File.Exists(pdfPath))
+        foreach (var targetPath in GetAllPossiblePdfPaths())
         {
-            try
+            if (System.IO.File.Exists(targetPath))
             {
-                System.IO.File.Delete(pdfPath);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Error deleting PDF: {ex.Message}" });
+                try
+                {
+                    System.IO.File.Delete(targetPath);
+                }
+                catch
+                {
+                    // Ignore deletion failures for individual paths
+                }
             }
         }
 
