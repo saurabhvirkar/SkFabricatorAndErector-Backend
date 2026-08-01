@@ -142,6 +142,22 @@ public static class DatabaseExtensions
                         ALTER TABLE ""ClientDetails"" ALTER COLUMN ""ImageUrl"" DROP NOT NULL;
                         ALTER TABLE ""ClientDetails"" ALTER COLUMN ""ImageUrl"" SET DEFAULT '';
                         UPDATE ""ClientDetails"" SET ""ImageUrl"" = '' WHERE ""ImageUrl"" IS NULL;
+
+                        -- Fix Inquiries.SubmittedAt: SQLite migration created it as TEXT,
+                        -- PostgreSQL needs timestamp with time zone for ordering to work.
+                        DO $$
+                        BEGIN
+                            IF EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                WHERE table_name = 'Inquiries'
+                                  AND column_name = 'SubmittedAt'
+                                  AND data_type = 'text'
+                            ) THEN
+                                ALTER TABLE ""Inquiries""
+                                    ALTER COLUMN ""SubmittedAt"" TYPE timestamp with time zone
+                                    USING ""SubmittedAt""::timestamp with time zone;
+                            END IF;
+                        END $$;
                     ");
                     AppendLog("PostgreSQL schema columns, ClientDetails constraints, and PageImageSlots table verified successfully.");
                 }
