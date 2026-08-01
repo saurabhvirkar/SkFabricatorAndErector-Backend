@@ -136,18 +136,27 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
                 return;
             }
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            using var client = new SmtpClient();
-            client.Timeout = 5000;
+            var port = int.TryParse(smtpPort, out var p) ? p : 587;
+            var socketOptions = port switch
+            {
+                465 => MailKit.Security.SecureSocketOptions.SslOnConnect,
+                587 => MailKit.Security.SecureSocketOptions.StartTls,
+                _ => MailKit.Security.SecureSocketOptions.Auto
+            };
 
-            await client.ConnectAsync(smtpServer, int.Parse(smtpPort), MailKit.Security.SecureSocketOptions.StartTls, cts.Token);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var client = new SmtpClient();
+            client.Timeout = 15000;
+
+            await client.ConnectAsync(smtpServer, port, socketOptions, cts.Token);
             await client.AuthenticateAsync(username, password, cts.Token);
             await client.SendAsync(message, cts.Token);
             await client.DisconnectAsync(true, cts.Token);
+            _logger.LogInformation("Email successfully dispatched via {SmtpServer}:{Port}", smtpServer, port);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "SMTP Email delivery timed out or failed silently so user operation can proceed.");
+            _logger.LogError(ex, "SMTP Email delivery failed for server {SmtpServer}:{Port}.", smtpServer, smtpPort);
         }
     }
 }
