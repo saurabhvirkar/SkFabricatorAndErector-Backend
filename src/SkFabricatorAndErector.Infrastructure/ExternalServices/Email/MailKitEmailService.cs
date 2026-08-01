@@ -28,18 +28,12 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 
     public async Task SendInquiryNotificationEmailAsync(Inquiry inquiry, IFormFile? file)
     {
-        var smtpServer = GetConfigValue("SmtpSettings:Host", "Email:SmtpServer");
-        var smtpPort = GetConfigValue("SmtpSettings:Port", "Email:SmtpPort");
-        var username = GetConfigValue("SmtpSettings:Username", "Email:Username");
-        var password = GetConfigValue("SmtpSettings:Password", "Email:Password");
-        var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "no-reply@skfabricator.com";
+        var smtpServer = GetConfigValue("SmtpSettings:Host", "Email:SmtpServer") ?? "smtp.gmail.com";
+        var smtpPort = GetConfigValue("SmtpSettings:Port", "Email:SmtpPort") ?? "465";
+        var username = GetConfigValue("SmtpSettings:Username", "Email:Username") ?? "ssvirkar04@gmail.com";
+        var password = GetConfigValue("SmtpSettings:Password", "Email:Password") ?? "vgog keuz eaiv ggag";
+        var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "ssvirkar04@gmail.com";
         var toAddress = GetConfigValue("SmtpSettings:ToEmail", "Email:To") ?? "ssvirkar04@gmail.com";
-
-        if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPort))
-        {
-            _logger.LogWarning("SMTP settings unconfigured; skipping inquiry notification email for inquiry ID {InquiryId}.", inquiry.Id);
-            return;
-        }
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("SK Fabricator Site", fromAddress));
@@ -108,17 +102,11 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 
     public async Task SendOtpCodeAsync(string toEmail, string code, string purpose)
     {
-        var smtpServer = GetConfigValue("SmtpSettings:Host", "Email:SmtpServer");
-        var smtpPort = GetConfigValue("SmtpSettings:Port", "Email:SmtpPort");
-        var username = GetConfigValue("SmtpSettings:Username", "Email:Username");
-        var password = GetConfigValue("SmtpSettings:Password", "Email:Password");
-        var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "no-reply@skfabricator.com";
-
-        if (string.IsNullOrEmpty(smtpServer) || string.IsNullOrEmpty(smtpPort))
-        {
-            _logger.LogWarning("SMTP configuration missing. OTP code [{Code}] generated for {Email} ({Purpose}).", code, toEmail, purpose);
-            return;
-        }
+        var smtpServer = GetConfigValue("SmtpSettings:Host", "Email:SmtpServer") ?? "smtp.gmail.com";
+        var smtpPort = GetConfigValue("SmtpSettings:Port", "Email:SmtpPort") ?? "465";
+        var username = GetConfigValue("SmtpSettings:Username", "Email:Username") ?? "ssvirkar04@gmail.com";
+        var password = GetConfigValue("SmtpSettings:Password", "Email:Password") ?? "vgog keuz eaiv ggag";
+        var fromAddress = GetConfigValue("SmtpSettings:FromEmail", "Email:From") ?? username ?? "ssvirkar04@gmail.com";
 
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress("SK Fabricator Security", fromAddress));
@@ -141,36 +129,67 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
 
     private async Task SendEmailInternalAsync(MimeMessage message, string smtpServer, string smtpPort, string? username, string? password)
     {
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || username.Contains("REPLACE_WITH", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("SMTP credentials missing or placeholder; skipping email dispatch.");
+            return;
+        }
+
+        var port = int.TryParse(smtpPort, out var p) ? p : 465;
+
+        // Render blocks outbound port 587. For Gmail on cloud platforms, port 465 (SslOnConnect) is required.
+        if (smtpServer.Contains("gmail", StringComparison.OrdinalIgnoreCase) && port == 587)
+        {
+            port = 465;
+        }
+
+        var socketOptions = port switch
+        {
+            465 => MailKit.Security.SecureSocketOptions.SslOnConnect,
+            587 => MailKit.Security.SecureSocketOptions.StartTls,
+            _ => MailKit.Security.SecureSocketOptions.Auto
+        };
+
+        // Try primary port (e.g. 465 SslOnConnect)
         try
         {
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || username.Contains("REPLACE_WITH", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogWarning("SMTP credentials missing or placeholder; skipping email dispatch.");
-                return;
-            }
-
-            var port = int.TryParse(smtpPort, out var p) ? p : 587;
-            var socketOptions = port switch
-            {
-                465 => MailKit.Security.SecureSocketOptions.SslOnConnect,
-                587 => MailKit.Security.SecureSocketOptions.StartTls,
-                _ => MailKit.Security.SecureSocketOptions.Auto
-            };
-
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             using var client = new SmtpClient();
             client.ServerCertificateValidationCallback = (s, c, ch, e) => true;
-            client.Timeout = 15000;
+            client.Timeout = 10000;
 
             await client.ConnectAsync(smtpServer, port, socketOptions, cts.Token);
             await client.AuthenticateAsync(username, password, cts.Token);
             await client.SendAsync(message, cts.Token);
             await client.DisconnectAsync(true, cts.Token);
             _logger.LogInformation("Email successfully dispatched via {SmtpServer}:{Port} to {To}", smtpServer, port, message.To.ToString());
+            return;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "SMTP Email delivery failed for server {SmtpServer}:{Port}.", smtpServer, smtpPort);
+            _logger.LogWarning(ex, "Primary SMTP attempt via {SmtpServer}:{Port} failed. Attempting fallback...", smtpServer, port);
+        }
+
+        // Fallback attempt: if 465 failed, try 587 (or vice versa)
+        var fallbackPort = (port == 465) ? 587 : 465;
+        var fallbackOptions = (fallbackPort == 465) ? MailKit.Security.SecureSocketOptions.SslOnConnect : MailKit.Security.SecureSocketOptions.StartTls;
+
+        try
+        {
+            using var ctsFallback = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            using var clientFallback = new SmtpClient();
+            clientFallback.ServerCertificateValidationCallback = (s, c, ch, e) => true;
+            clientFallback.Timeout = 10000;
+
+            await clientFallback.ConnectAsync(smtpServer, fallbackPort, fallbackOptions, ctsFallback.Token);
+            await clientFallback.AuthenticateAsync(username, password, ctsFallback.Token);
+            await clientFallback.SendAsync(message, ctsFallback.Token);
+            await clientFallback.DisconnectAsync(true, ctsFallback.Token);
+            _logger.LogInformation("Email successfully dispatched via fallback {SmtpServer}:{Port} to {To}", smtpServer, fallbackPort, message.To.ToString());
+        }
+        catch (Exception exFallback)
+        {
+            _logger.LogError(exFallback, "All SMTP delivery attempts failed for {SmtpServer} on ports 465 and 587.", smtpServer);
             throw;
         }
     }
