@@ -155,9 +155,14 @@ public class MailKitEmailService(IConfiguration config, ILogger<MailKitEmailServ
             {
                 using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
                 req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", resendKey);
+                var resendFrom = GetConfigValue("Resend:From", "ResendFromEmail");
+                var fromHeader = !string.IsNullOrWhiteSpace(resendFrom)
+                    ? resendFrom
+                    : "SK Fabricator & Erector <onboarding@resend.dev>";
+
                 var payload = new
                 {
-                    from = "onboarding@resend.dev",
+                    from = fromHeader,
                     to = new[] { toEmail },
                     subject,
                     html = htmlContent
