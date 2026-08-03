@@ -405,6 +405,38 @@ public static class DatabaseExtensions
                 );
                 await context.SaveChangesAsync();
             }
+
+            // 4. Seed TeamMembers if empty
+            if (!await context.TeamMembers.AnyAsync())
+            {
+                context.TeamMembers.AddRange(
+                    new TeamMember
+                    {
+                        Name = "Mr. Sudhakar Kale",
+                        Role = "Managing Director / Founder",
+                        Details = "Founder & Managing Director leading SK Fabricator & Erector with 20+ years of industrial EPC execution and vision.",
+                        Email = "skfabricator2070@gmail.com",
+                        ImageUrl = ""
+                    },
+                    new TeamMember
+                    {
+                        Name = "Mr. Shripad Kale",
+                        Role = "General Manager / Operations Head",
+                        Details = "General Manager & Operations Head driving project execution, plant turnarounds, and safety standards.",
+                        Email = "skfabricator2070@gmail.com",
+                        ImageUrl = ""
+                    },
+                    new TeamMember
+                    {
+                        Name = "Ganesh Dhanorkar",
+                        Role = "Project Manager / Design & Engineering",
+                        Details = "Project Manager leading structural design, CAD detailing, ASME/IS code verification, and site engineering.",
+                        Email = "skfabricator2070@gmail.com",
+                        ImageUrl = ""
+                    }
+                );
+                await context.SaveChangesAsync();
+            }
         }
         catch { }
     }
