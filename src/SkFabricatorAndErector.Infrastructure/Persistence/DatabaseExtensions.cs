@@ -437,6 +437,20 @@ public static class DatabaseExtensions
                 );
                 await context.SaveChangesAsync();
             }
+
+            // 5. Seed Photos if empty
+            if (!await context.Photos.AnyAsync())
+            {
+                context.Photos.AddRange(
+                    new Photo { Url = "assets/images/gallery/piping-1.jpg", Category = "Piping", IsAboutSlider = false, Width = 800, Height = 600 },
+                    new Photo { Url = "assets/images/gallery/piping-2.jpg", Category = "Piping", IsAboutSlider = false, Width = 800, Height = 600 },
+                    new Photo { Url = "assets/images/gallery/fabrication-1.jpg", Category = "Fabrication", IsAboutSlider = false, Width = 800, Height = 600 },
+                    new Photo { Url = "assets/images/gallery/erection-1.jpg", Category = "Erection", IsAboutSlider = false, Width = 800, Height = 600 },
+                    new Photo { Url = "assets/images/gallery/maintenance-1.jpg", Category = "Maintenance", IsAboutSlider = false, Width = 800, Height = 600 },
+                    new Photo { Url = "assets/images/gallery/tanks-1.jpg", Category = "Storage Tanks", IsAboutSlider = false, Width = 800, Height = 600 }
+                );
+                await context.SaveChangesAsync();
+            }
         }
         catch { }
     }
