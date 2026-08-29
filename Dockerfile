@@ -24,15 +24,16 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 # Security: Create non-root user
-RUN addgroup --system --gid 1000 appgroup && \
-    adduser --system --uid 1000 --ingroup appgroup appuser
+RUN groupadd -g 1000 appgroup 2>/dev/null || true && \
+    useradd -u 1000 -g appgroup appuser 2>/dev/null || true
 
 COPY --from=publish /app/publish .
 
 # Set ownership to non-root user
-RUN chown -R appuser:appgroup /app
+RUN chown -R 1000:1000 /app
 
-USER appuser
+USER 1000
+
 
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
