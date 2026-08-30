@@ -1,4 +1,4 @@
-name: Backend GitOps CI (Build, Test, Scan & Push to GHCR)
+name: Backend GitOps CI (Build, Test, Scan & Push to Docker Hub & GHCR)
 
 on:
   push:
@@ -13,8 +13,8 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: saurabhvirkar/skfabricator-backend
+  DOCKERHUB_IMAGE: saurabhvirkar/skfabricator-backend
+  GHCR_IMAGE: ghcr.io/saurabhvirkar/skfabricator-backend
 
 jobs:
   build-test-scan-push:
@@ -45,11 +45,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request' && secrets.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || 'saurabhvirkar' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -57,7 +64,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
           tags: |
             type=sha,prefix=,format=short
             type=raw,value=dev-latest,enable=${{ github.ref == 'refs/heads/develop' }}
@@ -76,7 +85,7 @@ jobs:
       - name: Run Trivy Vulnerability Scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}'
+          image-ref: '${{ env.DOCKERHUB_IMAGE }}:${{ steps.meta.outputs.version }}'
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
