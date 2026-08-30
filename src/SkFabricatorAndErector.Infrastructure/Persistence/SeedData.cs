@@ -97,7 +97,7 @@ public static class SeedData
             var adminPassword = configuration["SeedUserPasswords:Admin"];
             if (string.IsNullOrWhiteSpace(adminPassword) || adminPassword.StartsWith("REPLACE_WITH_"))
             {
-                adminPassword = "Admin@123!";
+                adminPassword = "Admin@123";
             }
             await EnsureUserAsync(serviceProvider, userManager, logger, adminEmail, adminPassword, UserRoles.Admin);
         }

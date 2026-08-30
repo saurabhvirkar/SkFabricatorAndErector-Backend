@@ -23,6 +23,8 @@ public static class DatabaseExtensions
             var rawConnStr = configuration.GetConnectionString("DefaultConnection") ?? "";
             var isPostgres = provider == "postgres" || provider == "postgresql" || 
                              rawConnStr.StartsWith("postgres", StringComparison.OrdinalIgnoreCase) || 
+                             rawConnStr.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
+                             rawConnStr.Contains("Server=", StringComparison.OrdinalIgnoreCase) ||
                              rawConnStr.Contains("neon.tech", StringComparison.OrdinalIgnoreCase);
 
             if (isPostgres)
