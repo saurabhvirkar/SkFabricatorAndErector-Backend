@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -81,22 +83,22 @@ public static class DatabaseExtensions
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
             AppendLog($"DbContext provider: {context.Database.ProviderName}");
 
-            try
+            var dbCreator = context.Database.GetService<IRelationalDatabaseCreator>();
+            if (!await dbCreator.HasTablesAsync())
             {
-                await context.Database.MigrateAsync();
-                AppendLog("EF Core Database Migrations applied successfully.");
+                await dbCreator.CreateTablesAsync();
+                AppendLog("Database tables created successfully via RelationalDatabaseCreator.");
             }
-            catch (Exception mEx)
+            else
             {
-                AppendLog($"MigrateAsync warning: {mEx.Message}. Trying EnsureCreatedAsync.");
                 try
                 {
-                    await context.Database.EnsureCreatedAsync();
-                    AppendLog("EnsureCreatedAsync completed.");
+                    await context.Database.MigrateAsync();
+                    AppendLog("EF Core Database Migrations applied successfully.");
                 }
-                catch (Exception ecEx)
+                catch (Exception mEx)
                 {
-                    AppendLog($"EnsureCreatedAsync error: {ecEx.Message}");
+                    AppendLog($"MigrateAsync warning: {mEx.Message}. Skipping migration since tables exist.");
                 }
             }
 
