@@ -9,10 +9,10 @@ public static class SecurityConfigurationExtensions
     {
         if (environment.EnvironmentName.Equals("Development", StringComparison.OrdinalIgnoreCase)) return;
 
-        var jwtKey = configuration["Jwt:Key"];
+        var jwtKey = configuration["Jwt:Key"] ?? configuration["JwtSettings:Secret"];
         if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.StartsWith("REPLACE_WITH_") || jwtKey.StartsWith("DEV_ONLY_"))
         {
-            throw new InvalidOperationException("CRITICAL SECURITY ERROR: Production Jwt:Key is missing or unconfigured.");
+            throw new InvalidOperationException("CRITICAL SECURITY ERROR: Production Jwt:Key or JwtSettings:Secret is missing or unconfigured.");
         }
 
         var connString = configuration.GetConnectionString("DefaultConnection") ?? configuration.GetConnectionString("SqliteConnection");
