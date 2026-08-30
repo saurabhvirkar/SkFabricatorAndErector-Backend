@@ -1,0 +1,28 @@
+name: Deploy Backend to Render (Stage)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-stage:
+    name: Trigger Render Stage Deployment
+    runs-on: ubuntu-latest
+    environment: Stage
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Trigger Render Stage Deploy Webhook
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_STAGE_API_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "::warning ::RENDER_STAGE_API_DEPLOY_HOOK is not set in GitHub Secrets. Skipping webhook trigger."
+          else
+            echo "Triggering Render Stage Deployment..."
+            curl -s -X POST "$RENDER_DEPLOY_HOOK"
+            echo "Render Stage Deployment Triggered Successfully."
+          fi
