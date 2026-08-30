@@ -6,19 +6,24 @@ using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Application.Features.Media;
 
-public class HomeSliderService(IHomeSliderRepository sliderRepository, IPhotoService photoService, HybridCache cache) : IHomeSliderService
+public class HomeSliderService(IHomeSliderRepository sliderRepository, IPhotoService photoService, HybridCache? cache = null) : IHomeSliderService
 {
     private readonly IHomeSliderRepository _sliderRepository = sliderRepository;
     private readonly IPhotoService _photoService = photoService;
-    private readonly HybridCache _cache = cache;
+    private readonly HybridCache? _cache = cache;
 
     private const string AllSlidersCacheKey = "sliders:all";
 
     public async Task<IEnumerable<HomeSlider>> GetAllSlidersAsync()
     {
-        return await _cache.GetOrCreateAsync(
-            AllSlidersCacheKey,
-            async ct => (await _sliderRepository.GetAllAsync()).ToList());
+        if (_cache != null)
+        {
+            return await _cache.GetOrCreateAsync(
+                AllSlidersCacheKey,
+                async ct => (await _sliderRepository.GetAllAsync()).ToList());
+        }
+
+        return await _sliderRepository.GetAllAsync();
     }
 
     public async Task<HomeSlider> AddSliderAsync(string title, string description, IFormFile file)
@@ -47,7 +52,10 @@ public class HomeSliderService(IHomeSliderRepository sliderRepository, IPhotoSer
         };
 
         await _sliderRepository.AddAsync(slider);
-        await _cache.RemoveAsync(AllSlidersCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllSlidersCacheKey);
+        }
         return slider;
     }
 
@@ -65,7 +73,10 @@ public class HomeSliderService(IHomeSliderRepository sliderRepository, IPhotoSer
         }
 
         await _sliderRepository.DeleteAsync(slider);
-        await _cache.RemoveAsync(AllSlidersCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllSlidersCacheKey);
+        }
         return true;
     }
 }

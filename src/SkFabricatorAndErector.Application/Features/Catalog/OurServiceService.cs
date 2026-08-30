@@ -6,19 +6,24 @@ using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Application.Features.Catalog;
 
-public class OurServiceService(IOurServiceRepository serviceRepository, IPhotoService photoService, HybridCache cache) : IOurServiceService
+public class OurServiceService(IOurServiceRepository serviceRepository, IPhotoService photoService, HybridCache? cache = null) : IOurServiceService
 {
     private readonly IOurServiceRepository _serviceRepository = serviceRepository;
     private readonly IPhotoService _photoService = photoService;
-    private readonly HybridCache _cache = cache;
+    private readonly HybridCache? _cache = cache;
 
     private const string AllServicesCacheKey = "services:all";
 
     public async Task<IEnumerable<OurService>> GetAllServicesAsync()
     {
-        return await _cache.GetOrCreateAsync(
-            AllServicesCacheKey,
-            async ct => (await _serviceRepository.GetAllAsync()).ToList());
+        if (_cache != null)
+        {
+            return await _cache.GetOrCreateAsync(
+                AllServicesCacheKey,
+                async ct => (await _serviceRepository.GetAllAsync()).ToList());
+        }
+
+        return await _serviceRepository.GetAllAsync();
     }
 
     public async Task<OurService?> GetServiceByIdAsync(int id)
@@ -45,7 +50,10 @@ public class OurServiceService(IOurServiceRepository serviceRepository, IPhotoSe
         }
 
         await _serviceRepository.AddAsync(service);
-        await _cache.RemoveAsync(AllServicesCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllServicesCacheKey);
+        }
         return service;
     }
 
@@ -68,7 +76,10 @@ public class OurServiceService(IOurServiceRepository serviceRepository, IPhotoSe
         }
 
         await _serviceRepository.UpdateAsync(service);
-        await _cache.RemoveAsync(AllServicesCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllServicesCacheKey);
+        }
         return service;
     }
 
@@ -78,7 +89,10 @@ public class OurServiceService(IOurServiceRepository serviceRepository, IPhotoSe
         if (service == null) return false;
 
         await _serviceRepository.DeleteAsync(service);
-        await _cache.RemoveAsync(AllServicesCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllServicesCacheKey);
+        }
         return true;
     }
 }

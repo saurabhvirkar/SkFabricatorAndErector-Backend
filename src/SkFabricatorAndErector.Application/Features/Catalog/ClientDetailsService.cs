@@ -6,19 +6,24 @@ using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Application.Features.Catalog;
 
-public class ClientDetailsService(IClientDetailsRepository clientDetailsRepository, IPhotoService photoService, HybridCache cache) : IClientDetailsService
+public class ClientDetailsService(IClientDetailsRepository clientDetailsRepository, IPhotoService photoService, HybridCache? cache = null) : IClientDetailsService
 {
     private readonly IClientDetailsRepository _clientDetailsRepository = clientDetailsRepository;
     private readonly IPhotoService _photoService = photoService;
-    private readonly HybridCache _cache = cache;
+    private readonly HybridCache? _cache = cache;
 
     private const string AllClientsCacheKey = "clients:all";
 
     public async Task<IEnumerable<ClientDetails>> GetAllClientDetailsAsync()
     {
-        return await _cache.GetOrCreateAsync(
-            AllClientsCacheKey,
-            async ct => (await _clientDetailsRepository.GetAllAsync()).ToList());
+        if (_cache != null)
+        {
+            return await _cache.GetOrCreateAsync(
+                AllClientsCacheKey,
+                async ct => (await _clientDetailsRepository.GetAllAsync()).ToList());
+        }
+
+        return await _clientDetailsRepository.GetAllAsync();
     }
 
     public async Task<ClientDetails?> GetClientDetailsByIdAsync(int id)
@@ -45,7 +50,10 @@ public class ClientDetailsService(IClientDetailsRepository clientDetailsReposito
         }
 
         await _clientDetailsRepository.AddAsync(client);
-        await _cache.RemoveAsync(AllClientsCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllClientsCacheKey);
+        }
         return client;
     }
 
@@ -67,7 +75,10 @@ public class ClientDetailsService(IClientDetailsRepository clientDetailsReposito
         }
 
         await _clientDetailsRepository.UpdateAsync(client);
-        await _cache.RemoveAsync(AllClientsCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllClientsCacheKey);
+        }
         return client;
     }
 
@@ -77,7 +88,10 @@ public class ClientDetailsService(IClientDetailsRepository clientDetailsReposito
         if (client == null) return false;
 
         await _clientDetailsRepository.DeleteAsync(client);
-        await _cache.RemoveAsync(AllClientsCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllClientsCacheKey);
+        }
         return true;
     }
 }

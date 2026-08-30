@@ -32,11 +32,12 @@ public class InquiryServiceTests
 
         // Act
         var result = await _sut.CreateInquiryAsync(inquiry);
+        await Task.Delay(200);
 
         // Assert
         Assert.NotNull(result);
         _repositoryMock.Verify(r => r.AddAsync(inquiry), Times.Once);
-        _emailServiceMock.Verify(e => e.SendInquiryNotificationEmailAsync(inquiry), Times.Once);
+        _emailServiceMock.Verify(e => e.SendInquiryNotificationEmailAsync(inquiry, null), Times.Once);
     }
 
     [Fact]

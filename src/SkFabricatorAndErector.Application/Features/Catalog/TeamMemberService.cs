@@ -6,19 +6,24 @@ using SkFabricatorAndErector.Domain.Entities;
 
 namespace SkFabricatorAndErector.Application.Features.Catalog;
 
-public class TeamMemberService(ITeamMemberRepository teamMemberRepository, IPhotoService photoService, HybridCache cache) : ITeamMemberService
+public class TeamMemberService(ITeamMemberRepository teamMemberRepository, IPhotoService photoService, HybridCache? cache = null) : ITeamMemberService
 {
     private readonly ITeamMemberRepository _teamMemberRepository = teamMemberRepository;
     private readonly IPhotoService _photoService = photoService;
-    private readonly HybridCache _cache = cache;
+    private readonly HybridCache? _cache = cache;
 
     private const string AllTeamCacheKey = "team:all";
 
     public async Task<IEnumerable<TeamMember>> GetAllTeamMembersAsync()
     {
-        return await _cache.GetOrCreateAsync(
-            AllTeamCacheKey,
-            async ct => (await _teamMemberRepository.GetAllAsync()).ToList());
+        if (_cache != null)
+        {
+            return await _cache.GetOrCreateAsync(
+                AllTeamCacheKey,
+                async ct => (await _teamMemberRepository.GetAllAsync()).ToList());
+        }
+
+        return await _teamMemberRepository.GetAllAsync();
     }
 
     public async Task<TeamMember?> GetTeamMemberByIdAsync(int id)
@@ -49,7 +54,10 @@ public class TeamMemberService(ITeamMemberRepository teamMemberRepository, IPhot
         }
 
         await _teamMemberRepository.AddAsync(member);
-        await _cache.RemoveAsync(AllTeamCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllTeamCacheKey);
+        }
         return member;
     }
 
@@ -80,7 +88,10 @@ public class TeamMemberService(ITeamMemberRepository teamMemberRepository, IPhot
         }
 
         await _teamMemberRepository.UpdateAsync(member);
-        await _cache.RemoveAsync(AllTeamCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllTeamCacheKey);
+        }
         return member;
     }
 
@@ -95,7 +106,10 @@ public class TeamMemberService(ITeamMemberRepository teamMemberRepository, IPhot
         }
 
         await _teamMemberRepository.DeleteAsync(member);
-        await _cache.RemoveAsync(AllTeamCacheKey);
+        if (_cache != null)
+        {
+            await _cache.RemoveAsync(AllTeamCacheKey);
+        }
         return true;
     }
 }
